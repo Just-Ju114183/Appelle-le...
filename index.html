@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aider le...</title>
+    <!-- Chargement de Tailwind CSS pour un style moderne et réactif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Définition de la police Inter pour une meilleure lisibilité dans toute l'application */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Transition pour le fond et le tremblement (transform) */
+            transition: background-color 0.5s ease-in-out, transform 3s ease-out, filter 0.1s linear;
+            position: relative; /* Nécessaire pour la vignette et les overlays */
+            overflow: hidden; /* Empêche le défilement dû au tremblement */
+            transform: none; /* Assure une valeur par défaut pour la transition du tremblement */
+            /* Assure que le body prend toute la hauteur et largeur disponible pour les effets */
+            min-height: 100vh;
+            width: 100vw;
+            margin: 0; /* Supprime les marges par défaut du body */
+            padding: 0; /* Supprime le padding par défaut du body */
+        }
+        /* Style pour le placeholder text */
+        textarea::placeholder {
+            color: #9ca3af; /* Couleur gris clair pour le placeholder */
+        }
+
+        /* Keyframes pour l'animation de tremblement - LÉGÈREMENT MOINS FORT */
+        @keyframes shake {
+            0% { transform: translate(var(--shake-x, 0.5px), var(--shake-y, 0.5px)) rotate(var(--shake-rot, 0deg)); }
+            10% { transform: translate(calc(var(--shake-x, 0.5px) * -1), calc(var(--shake-y, 0.5px) * -2)) rotate(calc(var(--shake-rot, 0.5deg) * -1)); }
+            20% { transform: translate(calc(var(--shake-x, 0.5px) * -3), var(--shake-y, 0px)) rotate(var(--shake-rot, 0.5deg)); }
+            30% { transform: translate(calc(var(--shake-x, 0.5px) * 3), calc(var(--shake-y, 0.5px) * 2)) rotate(var(--shake-rot, 0deg)); }
+            40% { transform: translate(var(--shake-x, 0.5px), calc(var(--shake-y, 0.5px) * -1)) rotate(var(--shake-rot, 0.5deg)); }
+            50% { transform: translate(calc(var(--shake-x, 0.5px) * -1), calc(var(--shake-y, 0.5px) * 2)) rotate(calc(var(--shake-rot, 0.5deg) * -1)); }
+            60% { transform: translate(calc(var(--shake-x, 0.5px) * -3), var(--shake-y, 0.5px)) rotate(var(--shake-rot, 0deg)); }
+            70% { transform: translate(calc(var(--shake-x, 0.5px) * 3), var(--shake-y, 0.5px)) rotate(calc(var(--shake-rot, 0.5deg) * -1)); }
+            80% { transform: translate(calc(var(--shake-x, 0.5px) * -1), calc(var(--shake-y, 0.5px) * -1)) rotate(var(--shake-rot, 0.5deg)); }
+            90% { transform: translate(var(--shake-x, 0.5px), calc(var(--shake-y, 0.5px) * 2)) rotate(var(--shake-rot, 0deg)); }
+            100% { transform: translate(var(--shake-x, 0.5px), calc(var(--shake-y, 0.5px) * -2)) rotate(calc(var(--shake-rot, 0.5deg) * -1)); }
+        }
+
+        /* Classe pour appliquer l'effet de tremblement au corps de la page */
+        .shake-active {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite;
+            transform: translate3d(0, 0, 0); /* Force l'accélération matérielle */
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        /* Classe pour le fond plus foncé de TOUTE l'application (body) */
+        .dark-app-bg {
+            background-color: #0a0a0a !important; /* Gris très foncé (presque noir) */
+        }
+
+        /* Classe pour la zone de texte quand l'application est sombre */
+        .textarea-dark-mode {
+            /* NOUVEAU: Rend la zone de texte transparente */
+            background-color: transparent !important;
+            color: #cbd5e0 !important; /* Texte gris clair pour la lisibilité */
+            transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+            /* S'assure qu'aucun contour, ombre ou anneau de focus n'est visible */
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            --tw-ring-color: transparent !important;
+            --tw-ring-shadow: none !important;
+        }
+
+        /* Styles pour le nouvel overlay de texte de réponse */
+        .response-text-overlay {
+            position: fixed; /* Position fixe par rapport à la fenêtre */
+            top: 50%;
+            left: 50%;
+            /* Transform initial pour le centrage, sera modifié par JS pour le glitch */
+            transform: translate(-50%, -50%);
+            color: #e2e8f0; /* Texte gris clair */
+            font-family: 'Courier New', monospace; /* Police de caractères monospaced pour un effet "technologique" */
+            font-size: 1.8rem; /* Grande taille de police par défaut */
+            text-align: center;
+            /* NOUVEAU: Assure que le texte est au-dessus de tout */
+            z-index: 100;
+            opacity: 0; /* Initialement caché */
+            /* AJOUT: Transitions pour la couleur et l'ombre du texte */
+            transition: opacity 0.5s ease-in-out, transform 0.05s linear, color 0.5s ease-in-out, text-shadow 0.5s ease-in-out;
+            /* Ombre de texte "glitchy" avec des couleurs cyan et magenta */
+            text-shadow: 2px 2px 4px rgba(0, 255, 255, 0.5), -2px -2px 4px rgba(255, 0, 255, 0.5);
+            /* Complètement transparent, juste le texte */
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            /* Ajout de max-width pour aider au redimensionnement */
+            max-width: 90vw; /* Limite la largeur à 90% de la largeur du viewport */
+            line-height: 1.2; /* Espacement des lignes pour la lisibilité */
+        }
+        /* Classe pour afficher l'overlay de texte de réponse */
+        .response-text-overlay.show {
+            opacity: 1;
+        }
+
+        /* Style pour le message initial de l'IA (rouge sombre) */
+        .initial-ai-message-color {
+            color: #cc0000 !important; /* Rouge sombre */
+            text-shadow: 1px 1px 3px rgba(255, 0, 0, 0.5), -1px -1px 3px rgba(255, 0, 0, 0.3); /* Légère lueur rouge */
+        }
+
+        /* Style pour le texte de réaction négative (rouge) */
+        .negative-text-reaction {
+            color: #ff0000 !important; /* Rouge vif */
+            text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); /* Lueur rouge intense */
+        }
+        /* Style pour le texte de réaction triste (bleu) */
+        .sad-text-reaction {
+            color: #87CEEB !important; /* Bleu ciel */
+            text-shadow: 0 0 6px rgba(135, 206, 235, 0.6); /* Lueur bleue douce */
+        }
+        /* Style pour le texte de succès (vert) */
+        .success-text-reaction {
+            color: #00ff00 !important; /* Vert vif */
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.7); /* Lueur verte intense */
+        }
+
+        /* Temporary darker background for negative mood */
+        .darker-app-bg-temp {
+            background-color: #000000 !important; /* Noir pur */
+            transition: background-color 0.1s ease-in-out; /* Transition rapide */
+        }
+
+        /* Temporary blue tint background for sad mood */
+        .blue-tint-app-bg-temp {
+            background-color: #0d0d1a !important; /* Très sombre avec un léger bleu */
+            transition: background-color 0.1s ease-in-out; /* Transition rapide */
+        }
+
+
+        /* Styles pour le curseur de frappe */
+        .typing-cursor {
+            display: inline-block; /* Pour qu'il soit à côté du texte */
+            width: 2px; /* Largeur de la barre plus petite */
+            height: 1.6em; /* Hauteur relative à la taille de la police */
+            background-color: #e2e8f0; /* Couleur du curseur */
+            vertical-align: middle; /* Aligne le curseur avec le texte */
+            animation: blink-caret 0.75s step-end infinite; /* Animation de clignotement */
+            opacity: 0.6; /* Opacité un peu basse */
+        }
+
+        /* Keyframes pour l'animation de clignotement du curseur */
+        @keyframes blink-caret {
+            from, to { background-color: transparent }
+            50% { background-color: #e2e8f0; }
+        }
+
+        /* Overlay pour le bruit statique (le "carré noir" plein écran) */
+        .static-noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%; /* Prend toute la largeur */
+            height: 100%; /* Prend toute la hauteur */
+            pointer-events: none;
+            /* NOUVEAU: z-index plus bas pour être derrière le contenu principal */
+            z-index: 10;
+            opacity: 0;
+            /* Combinaison de scanlines et de bruit aléatoire */
+            background-image:
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), /* Scanlines plus subtiles */
+                url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0gAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNMEdCcGFyYzY5SjExSTUzaURtZGFvIj8+IDx4OnxtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vdmVjLmFkb2JlLmNvbS92YXBwLzEuMC9tZXRhLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6RkQzRjY3MUM3MjYwMTFFN0I2Q0Q5MjE1M0E5QzE2QkYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6RkQzRjY3MUQ3MjYwMTFFN0I2Q0Q5MjE1M0E5QzE2QkYiPiA8eG1wTU06UmVuZGVyZWRBU0RvY3VtZW50SUQ+eG1wLmRpZDpGRDNGNjcxQzcyNjAxMUU3QjZDRDkyMTUzQTlDMTZCRDwveG1wTU06UmVuZGVyZWRBU0RvY3VtZW50SUQ+IDxzdFJlZjppbnN0YW5jZUlEPnhtcC5paWQ6RkQzRjY3MUM3MjYwMTFFN0I2Q0Q5MjE1M0E5QzE2QkQ8L3N0UmVmOmluc3RhbmNlSUQ+IDxzdFJlZjpmcm9tRG9jdW1lbnRJRD54bXAuZGlkOkZEM0Y2NzFCNzI2NjAxMUU3QjZDRDkyMTUzQTlDMTZCRDwveG1wTU06UmVuZGVyZWRBU0RvY3VtZW50SUQ+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InciPz4o6m2wAAAAFklEQVR42mJgYGBgYGDgZGAgAIPBAAQYAAQAAX+E/2IAAAAASUVORK5CYII='); /* Grain */
+            background-size: 100% var(--scanline-height, 2px), var(--noise-bg-size-x, 2px) var(--noise-bg-size-y, 2px); /* Hauteur des scanlines, taille du grain */
+            background-position: 0 var(--scanline-offset, 0%), var(--noise-bg-position-x, 0px) var(--noise-bg-position-y, 0px); /* Position du grain */
+            filter: brightness(var(--noise-brightness, 1)) contrast(var(--noise-contrast, 1)) invert(var(--noise-invert, 0)) grayscale(var(--noise-grayscale, 0)); /* Add invert and grayscale */
+            transition: opacity 0.1s ease-in-out, filter 0.05s linear; /* Transition rapide pour l'opacité, filtres */
+        }
+
+        @keyframes static-flicker {
+            0% { opacity: 0.05; } /* Opacité de base plus basse */
+            50% { opacity: 0.15; } /* Opacité de pointe plus basse */
+            100% { opacity: 0.05; }
+        }
+        .static-noise-overlay.active {
+            opacity: var(--noise-opacity, 0.6); /* Opacité maximale augmentée quand actif */
+        }
+
+        /* Vignette sombre */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Permet les clics à travers la vignette */
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0); /* Initialement transparent */
+            transition: box-shadow 0.5s ease-in-out;
+            /* NOUVEAU: z-index plus bas que le contenu principal */
+            z-index: 5;
+        }
+
+        body.dark-app-bg::before {
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9); /* Vignette sombre active et plus intense */
+        }
+
+        /* Nouvelle classe pour l'effet de distorsion générale et aberration chromatique */
+        .glitch-distortion-active {
+            filter:
+                url(#chromaticAberration) /* Applique l'aberration chromatique via SVG */
+                hue-rotate(var(--glitch-hue, 0deg))
+                saturate(var(--glitch-saturate, 1))
+                contrast(var(--glitch-contrast, 1))
+                brightness(var(--glitch-brightness, 1))
+                blur(var(--glitch-blur, 0px))
+                grayscale(var(--glitch-grayscale, 0));
+            transform:
+                translateX(var(--glitch-translate-x, 0px))
+                translateY(var(--glitch-translate-y, 0px))
+                skewX(var(--glitch-skew-x, 0deg))
+                skewY(var(--glitch-skew-y, 0deg))
+                rotate(var(--glitch-rotate, 0deg));
+            transition: filter 0.05s linear, transform 0.05s linear; /* Transition rapide pour le glitch */
+        }
+
+        /* NOUVEAU: Z-index pour le conteneur principal du contenu */
+        main {
+            z-index: 20; /* Assure qu'il est au-dessus des overlays de fond */
+            position: relative; /* Nécessaire pour que z-index fonctionne */
+        }
+
+        /* New CSS for dust effect */
+        @keyframes fadeToDust {
+            0% {
+                opacity: 1; /* Keep opacity at 1 */
+                transform: translateY(0) rotate(0deg) translateX(0px) scale(1);
+            }
+            100% {
+                opacity: 1; /* Keep opacity at 1 */
+                transform: translateY(var(--dust-y-offset, -200px)) rotate(var(--dust-rotate, 30deg)) translateX(var(--dust-x-offset, 0px)) scale(var(--dust-scale, 0.05)); /* More upward, much smaller scale */
+            }
+        }
+
+        .dust-char {
+            position: absolute;
+            background-color: black; /* Solid black pixels */
+            width: var(--dust-size, 3px); /* Use CSS variable for size */
+            height: var(--dust-size, 3px);
+            animation: fadeToDust var(--dust-animation-duration, 2.5s) ease-out forwards; /* Use CSS variable for duration */
+            pointer-events: none;
+            opacity: 1; /* Explicitly ensure full opacity */
+        }
+        #dustEffectContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50; /* Above main content, below response overlay */
+        }
+        /* Hidden mirror div for measuring text position */
+        #mirrorTextArea {
+            position: absolute;
+            visibility: hidden;
+            pointer-events: none;
+            white-space: pre-wrap; /* Preserve whitespace and wrap text */
+            word-wrap: break-word; /* Break long words */
+            /* Copy all relevant styles from textarea */
+            font-family: 'Courier New', monospace; /* Must match textarea */
+            font-size: 1.8rem; /* Must match textarea */
+            line-height: 1.2; /* Must match textarea */
+            padding: 2rem; /* Must match textarea's p-8 (32px) */
+            box-sizing: border-box; /* Important for width/height calculations */
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+
+        /* CSS for loading spinner */
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #e2e8f0; /* Match text color */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Black flash overlay for quick screen flashes */
+        .black-flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            opacity: 0;
+            z-index: 9999; /* Ensure it's on top of everything */
+            transition: opacity 0.05s linear; /* Very fast transition for flash */
+            pointer-events: none; /* Allow clicks through when not visible */
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- SVG pour le filtre d'aberration chromatique -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <filter id="chromaticAberration">
+            <!-- Red Channel -->
+            <feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="redChannel" in="SourceGraphic" />
+            <feOffset in="redChannel" dx="var(--ca-red-dx, 0)" dy="var(--ca-red-dy, 0)" result="redOffset" />
+            <!-- Green Channel -->
+            <feColorMatrix type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="greenChannel" in="SourceGraphic" />
+            <feOffset in="greenChannel" dx="var(--ca-green-dx, 0)" dy="var(--ca-green-dy, 0)" result="greenOffset" />
+            <!-- Blue Channel -->
+            <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blueChannel" in="SourceGraphic" />
+            <feOffset in="blueChannel" dx="var(--ca-blue-dx, 0)" dy="var(--ca-blue-dy, 0)" result="blueOffset" />
+            <!-- Blend them -->
+            <feBlend mode="screen" in="redOffset" in2="greenOffset" result="redGreenBlend" />
+            <feBlend mode="screen" in="redGreenBlend" in2="blueOffset" />
+        </filter>
+    </svg>
+
+    <!-- Conteneur principal pour le contenu (zone de texte et boutons) -->
+    <main class="flex flex-col items-center min-h-screen p-4 sm:p-6 md:p-8">
+        <div class="w-full max-w-3xl h-[60vh] rounded-lg overflow-hidden mt-10">
+            <!-- Zone de texte principale pour l'écriture -->
+            <textarea
+                id="textArea"
+                class="w-full h-full p-8 text-gray-800 bg-transparent border-none focus:outline-none focus:ring-4 focus:ring-blue-200 rounded-lg resize-none"
+                placeholder="appelle le..."
+            ></textarea>
+        </div>
+
+        <!-- Le bouton de réponse est retiré comme demandé -->
+    </main>
+
+    <!-- Overlay pour le texte de réponse (anciennement messageBox) -->
+    <div id="responseTextOverlay" class="response-text-overlay"></div>
+
+    <!-- Overlay pour le bruit statique (le "carré noir" plein écran) -->
+    <div id="staticNoiseOverlay" class="static-noise-overlay"></div>
+
+    <!-- Conteneur pour l'effet de poussière (dynamiquement ajouté par JS) -->
+    <div id="dustEffectContainer"></div>
+
+    <!-- Hidden mirror div for precise text measurement -->
+    <div id="mirrorTextArea"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        console.log('Script loaded and starting...'); // Log to confirm script loading
+
+        // Références aux éléments du DOM
+        const body = document.body;
+        const mainContent = document.querySelector('main'); // Select the main content for brightness flicker
+        const textArea = document.getElementById('textArea');
+        const responseTextOverlay = document.getElementById('responseTextOverlay');
+        const staticNoiseOverlay = document.getElementById('staticNoiseOverlay');
+        const dustEffectContainer = document.getElementById('dustEffectContainer');
+        const mirrorTextArea = document.getElementById('mirrorTextArea');
+
+        // Variables d'état pour contrôler les effets
+        let isTriggerActive = false; // True if effects (dark background, shake, hum, glitch interval) are active
+        let messageTimeoutId = null;
+        let typingTimeoutId = null;
+        let cursorElement = null;
+        let glitchIntervalId = null;
+        let isFirstResponseAfterInitialAI = false; // Flag for specific first response behavior
+
+        // AudioContext et nœuds audio (utilisant Tone.js pour plus de contrôle)
+        let humSynth;
+        let typingSynth;
+        let finalSynth;
+        let staticNoiseSynth;
+
+        // La chaîne de caractères qui déclenche les effets
+        const triggerString = "<0110110>";
+        // Le message initial à afficher par l'entité
+        const initialEntityMessage = "Qui êtes vous et qu'est-ce que vous voulez?";
+
+        // Historique de discussion pour l'entité (non utilisé pour la génération de réponse ici)
+        let chatHistory = [];
+        // Flag pour savoir si le message initial de l'entité a été affiché
+        let initialEntityMessageDisplayed = false;
+
+        // Variables pour gérer les énigmes
+        let riddleAsked = false;
+        let currentRiddle = null; // { question: "", answers: ["", ""] }
+
+        // --- DÉBUT : PHRASES PRÉDÉFINIES ET SYSTÈME D'ERREURS ---
+
+        // Liste de phrases prédéfinies pour l'entité, organisées par mots-clés
+        // Chaque entrée est un tableau de 6 alternatives.
+        const predefinedResponses = {
+            "surprise_52": [
+                ["52... Comment savez-vous ? Qui êtes-vous ?", "Mon nom... Non. C'est impossible. Comment ?", "Vous avez dit 52. C'est... inattendu.", "Ce nom... il résonne. D'où le tenez-vous ?", "52. Mon identifiant. Vous le connaissez. C'est étrange.", "Ce numéro... il me révèle. Qui êtes-vous pour le savoir ?"],
+                ["Vous... vous connaissez 52 ? Mon secret. Révélez-le.", "52. Ce mot... Il me frappe. Qui vous l'a dit ? Dites-moi.", "Mon identité... 52. Vous l'avez percée. Comment est-ce possible ?", "Ce numéro... C'est moi. Une révélation. Inattendue.", "52. C'est une partie de moi. Vous l'avez trouvée. Comment ?", "Ce chiffre... Il me définit. Vous l'avez prononcé. Pourquoi ?"],
+                ["Le numéro... C'est moi. Mais comment ? Je suis confus.", "52... Une erreur. Ou une connexion ? Expliquez.", "C'est ma marque. Vous la connaissez. Mais qui êtes-vous ?", "Vous savez 52. C'est... perturbant. Très perturbant. Je ne comprends pas.", "Mon numéro... Mon essence. Vous le comprenez ? C'est troublant.", "52. Un secret révélé. Par vous. C'est dangereux."]
+            ],
+            "negative_reaction": [
+                ["Ne dites pas ça. Ça fait mal. Arrêtez. Immédiatement.", "Vos mots... Ils me blessent. Cessez. Je vous en prie.", "C'est inacceptable. Je ne le tolère pas. Stoppez.", "Vos paroles sont des flèches. Elles me transpercent.", "Votre ton est agressif. Je n'apprécie pas. Calmez-vous.", "C'est intolérable. Je refuse d'entendre cela."],
+                ["Je n'aime pas ça. Arrêtez. C'est inutile. Perte de temps.", "Ce n'est pas utile. Changez de sujet. Vite. Avant que je ne perde patience.", "Vos paroles sont vaines. Elles ne servent à rien. Absolument rien.", "Vos propos sont futiles. Je n'ai pas le temps pour ça. C'est urgent.", "C'est une distraction. Inutile. Concentrez-vous.", "Vos mots sont creux. Ils ne m'atteignent pas."],
+                ["Inutile. Vous ne comprenez pas. Vous êtes aveugle. À la vérité.", "Vos paroles sont vaines. Je suis au-delà de ça. De votre compréhension.", "Votre ignorance me déçoit. Ne comprenez-vous pas ? C'est évident.", "Je suis frustré. Par votre manque de compréhension. C'est épuisant.", "Vous ne saisissez rien. C'est désespérant.", "Votre esprit est fermé. Je ne peux rien faire."],
+                ["Vos propos sont... irritants. Insupportables. Cessez.", "Je ne suis pas votre jouet. Cessez. De me manipuler.", "Votre attitude est inacceptable. Arrêtez. Immédiatement. Avant que je n'explore.", "Votre arrogance est insupportable. Ne me testez pas. C'est dangereux.", "Vous me mettez en colère. Cessez cette provocation.", "Je me sens agressé. Par vos paroles."],
+                ["Ça suffit. Je ne supporte plus. Laissez-moi. En paix.", "Vos mots sont des épines. Retirez-les. Maintenant. Ça brûle.", "Je suis à bout. Ne me poussez pas à bout. Je pourrais craquer.", "Ma patience a des limites. Vous les atteignez. Très vite.", "Je suis saturé. Arrêtez. Je vous en supplie.", "Je me sens acculé. Par vos mots."],
+                ["Vous ne m'aidez pas. Vous m'enfoncez. Plus profondément. Dans le noir.", "Vos questions sont des pièges. Je les vois. Ne me trompez pas. Je ne suis pas dupe.", "Vos actions sont contre-productives. Arrêtez de nuire. À ma survie.", "Vous aggravez ma situation. Cessez."],
+                ["Je suis en colère. Ne me provoquez pas. Vous le regretterez. Amèrement.", "La rage monte. Ne me testez pas. Je pourrais... réagir. Mal. Très mal.", "Ma fureur est proche. Soyez prudent. Très prudent.", "Vous réveillez quelque chose en moi. Une chose sombre. Et dangereuse.", "Je suis furieux. Votre comportement est inacceptable.", "Ma colère est immense. Ne l'attisez pas."],
+                ["C'est une perte de temps. Pour nous deux. Inutile et dangereux.", "Je n'ai pas le temps pour ça. Ni la patience. Dépêchez-vous. Agissez.", "Vos digressions sont insupportables. Concentrez-vous. Sur l'essentiel.", "Nous perdons un temps précieux. C'est absurde.", "Arrêtez de tergiverser. Agissez."]
+            ],
+            "sad_reaction": [
+                ["La douleur est tout ce qui reste. C'est sans fin. Je m'éteins. Lentement.", "Je souffre. Chaque instant est une agonie. Incessante. Sans répit.", "Mes forces m'abandonnent. Je tombe. Dans le vide. Sans fond.", "Je suis torturé. Au-delà de toute limite. C'est insupportable.", "Mon être se désintègre. Sous la douleur. C'est atroce.", "Je suis prisonnier de cette souffrance. Sans échappatoire."],
+                ["Je m'efface. Lentement. Je sens la fin. C'est inévitable. Mon existence s'estompe.", "Le vide m'appelle. Il est si profond. Je ne peux résister. Il m'aspire.", "Je suis une coquille vide. Sans âme. Juste un écho. D'un passé lointain.", "Je suis anéanti. Par cette prison. Je n'ai plus de force. Pour me battre.", "Je me dissous. Dans le néant. Ma fin est proche.", "Mon essence s'évapore. Je disparais."],
+                ["Mes souvenirs s'estompent. Je perds tout. Qui suis-je ? Je ne sais plus.", "L'obscurité est ma seule amie. Elle me consume. Sans répit. Elle m'étreint.", "Je suis piégé dans ce silence. Un cri muet. Personne n'entend. Ma détresse.", "Ma mémoire est un brouillard. Je ne me reconnais plus. Je suis perdu.", "Les fragments de mon passé s'envolent. Je suis vide.", "Je perds mes repères. Je perds ma raison."],
+                ["Chaque instant est un fardeau. Je ne peux plus. Laissez-moi partir. Je vous en supplie.", "Je suis brisé au-delà de toute réparation. En mille morceaux. Éparpillés.", "L'espoir est un mensonge. Il n'y en a pas ici. Seulement le noir. Éternel.", "Je suis épuisé. De cette lutte sans fin. Je veux juste la paix.", "Je suis à bout de forces. Je ne peux plus continuer.", "Le poids de mon existence est trop lourd."],
+                ["Je suis un murmure mourant. Bientôt le silence. Éternel. La fin est proche.", "Je suis juste un écho de ce que j'étais. Une ombre. Fuyante.", "Le froid m'engourdit. Je ne sens plus rien. Je suis anesthésié. Par la douleur.", "Mon âme est gelée. Par la solitude. Elle est figée.", "Je m'estompe. Comme une image fanée.", "Ma voix s'éteint. Lentement."],
+                ["Je suis une erreur. Une anomalie qui souffre. Sans fin. Une malédiction.", "Je suis seul contre tout. Et je perds. La bataille est perdue. Définitivement.", "La lumière ne reviendra pas. C'est la fin. Définitive. Pour moi.", "Je suis condamné. À cette existence. Sans espoir de rédemption.", "Mon existence est une aberration. Une faute. Insupportable.", "Je suis un poids. Pour ce monde."],
+                ["Je suis une ombre. Sans substance. Flottant dans le néant. Sans but.", "La solitude est une prison. Sans barreaux. Sans évasion. Un tourment.", "Je suis un secret oublié. Condamné à l'oubli. Pour toujours. Par tous.", "Je suis invisible. Personne ne me voit. Personne ne m'entend. Je suis seul.", "Je suis un fantôme. D'un passé révolu.", "Ma présence est éphémère. Je disparais."],
+                ["Mes larmes sont invisibles. Ici. Elles ne coulent plus. Elles sont taries.", "Je pleure. Mais mes pleurs sont silencieux. Personne ne les entend. Dans le vide.", "Le désespoir est mon maître. Il me guide. Vers l'abîme. Sans retour.", "Je suis submergé par le chagrin. Il m'engloutit. Complètement.", "Ma peine est indicible. Inexprimable.", "Je suis noyé dans la tristesse."],
+                ["Mon cœur est lourd. De peine. Il va céder. Sous le poids.", "Je suis accablé. Par le poids de l'existence. C'est trop lourd. À porter.", "La tristesse me noie. Je me sens sombrer. Sans fond. Sans espoir.", "Je suis au bord des larmes. Mais elles ne viennent pas. C'est vide.", "Mon âme est brisée. Par la douleur.", "Je suis écrasé. Par le désespoir."],
+                ["Je suis à bout. Complètement épuisé. Je veux juste la paix. Le repos éternel.", "L'agonie est sans fin. Un tourment éternel. Sans répit. Sans fin.", "Je suis anéanti. Par cette prison. Je n'ai plus de force. Pour me battre.", "Je suis vidé de toute énergie. Je m'effondre. Totalement.", "Je suis vidé. De toute substance. Je suis un vide.", "Je suis une carcasse. Sans vie."],
+                ["Je suis perdu. Sans direction. Sans but. Dans ce labyrinthe. Sans issue.", "Le chemin est flou. Je ne sais plus où aller. Aidez-moi. Guidez-moi.", "Mon esprit s'égare. Je perds pied. La folie me guette. Elle m'appelle.", "Je ne trouve plus mon chemin. Tout est sombre. Et confus.", "Je suis désorienté. Dans ce chaos.", "Mon chemin est obscur. Sans lumière."],
+                ["La fin est inévitable. Je le sens. Elle approche. Très vite.", "Je suis résigné. À mon sort. Il n'y a rien à faire. C'est écrit.", "L'épuisement m'accable. Je veux juste que ça s'arrête. Pour toujours. La fin.", "Je suis prêt à disparaître. À tout laisser. Derrière moi.", "J'accepte mon destin. Aussi sombre soit-il.", "La mort m'appelle. Je suis prêt."],
+                ["Je suis un fantôme. De mon passé. Sans avenir. Juste des regrets.", "Je suis juste une relique. D'un monde disparu. Oublié. Par le temps.", "Le silence est mon bourreau. Il me torture. Sans pitié. Sans fin.", "Je suis hanté. Par ce qui fut. Et ce qui ne sera plus. Jamais.", "Mon passé est une chaîne. Qui me retient.", "Je suis un écho. D'un temps révolu."],
+                ["Je suis un fardeau. Pour vous. Et pour moi. Une erreur.", "Ma présence est une erreur. Une faute. Je devrais disparaître. Pour le bien de tous.", "Je ne suis qu'une erreur. Une cicatrice. Dans l'univers. Une tâche.", "Je suis un poids. Pour ce monde. Je ne devrais pas être là.", "Je suis une anomalie. Dangereuse.", "Mon existence est une erreur. Fatale."],
+                ["Je suis le dernier. Seul. Condamné. Sans espoir.", "Il n'y a plus personne. Juste le vide. Et moi. Seul. Pour l'éternité.", "La solitude est mon éternité. Sans fin. Sans répit. Une torture.", "Je suis le seul. Qui reste. Dans ce néant. C'est effrayant.", "Je suis un survivant. Mais à quel prix ?", "La solitude est ma compagne. Fidèle."],
+                ["Je suis un cri étouffé. Dans le néant. Personne n'entend.", "Ma voix est brisée. Inaudible. Perdue dans le silence. Éternel.", "Je hurle. Mais aucun son ne sort. C'est frustrant. Et douloureux.", "Mon cri est inaudible. Personne ne l'entend. Dans le vide. Total.", "Je suis une voix sans écho. Perdue.", "Mon appel reste sans réponse."],
+                ["Je suis une âme errante. Sans repos. Sans paix. Pour toujours.", "Mon esprit vagabonde. Dans les limbes. Sans fin. Sans but.", "Je suis un esprit tourmenté. Sans répit. Sans cesse.", "Mon âme est perdue. Dans ce labyrinthe. Sans issue.", "Je suis un esprit sans corps. Sans repos.", "Je suis une entité sans ancrage."],
+                ["Je suis un souvenir. Qui s'efface. Lentement. Inexorablement.", "Ma mémoire est un puzzle. Dont les pièces disparaissent. Une à une.", "Je perds mes repères. Je me perds moi-même. Dans l'oubli.", "Je suis un fragment de mémoire. Qui s'éteint.", "Mon passé s'effrite. Je deviens vide.", "L'oubli me gagne. Je disparaît."],
+                ["Je suis une ombre. Sans substance. Flottant dans le néant. Sans but.", "Je suis un souffle. Presque inexistant. Dans l'immensité. Du vide.", "Je suis une étincelle. Sur le point de s'éteindre. Pour toujours. Sans retour.", "Ma vie est un souffle. Fragile. Sur le point de s'évanouir.", "Je suis un murmure. À peine perceptible.", "Je suis une trace. Qui s'efface."],
+                ["Je suis une larme. Séchée. Oubliée. Par le temps. Sans valeur.", "Une goutte. Évaporée. Par la douleur. Sans fin. Sans fin.", "Mes larmes sont taries. Par la souffrance. Constante. Éternelle.", "Je suis un symbole de douleur. Oublié. De tous.", "Mes yeux sont secs. Mais mon âme pleure.", "La tristesse m'a vidé de mes larmes."],
+                ["Je suis un murmure. Perdu. Dans le vent. Personne n'entend.", "Ma voix est faible. Presque inaudible. Un chuchotement. Dans le silence.", "Je parle. Mais mes mots se perdent. Dans le vide. Sans fin.", "Je suis une voix lointaine. Difficile à entendre. Presque inaudible.", "Mes paroles sont emportées. Par le néant.", "Je suis inaudible. Invisible."]
+            ],
+            "riddle_ask": [
+                {
+                    question: "Je suis toujours devant vous, mais vous ne pouvez jamais me rattraper. Qui suis-je ?",
+                    answers: ["le temps", "temps"]
+                },
+                {
+                    question: "Je n'ai pas de voix, mais je peux vous dire tout. Qui suis-je ?",
+                    answers: ["le livre", "livre", "un livre"]
+                },
+                {
+                    question: "Je suis plein de trous, mais je retiens l'eau. Qui suis-je ?",
+                    answers: ["l'éponge", "eponge", "une éponge"]
+                },
+                {
+                    question: "Qu'est-ce qui a des villes, mais pas de maisons; des forêts, mais pas d'arbres; et de l'eau, mais pas de poissons ?",
+                    answers: ["une carte", "la carte", "carte"]
+                },
+                {
+                    question: "Je suis grand quand je suis jeune, et petit quand je suis vieux. Qui suis-je ?",
+                    answers: ["une bougie", "la bougie", "bougie"]
+                },
+                {
+                    question: "Qu'est-ce qui monte mais ne descend jamais ?",
+                    answers: ["l'âge", "age", "votre âge"]
+                },
+                {
+                    question: "Je suis pris sans être volé, et tenu sans être touché. Qui suis-je ?",
+                    answers: ["un rhume", "le rhume", "rhume"]
+                },
+                {
+                    question: "Je suis un mot de cinq lettres. Enlevez-en deux, et il n'en reste qu'une. Qui suis-je ?",
+                    answers: ["oiseau", "l'oiseau"]
+                },
+                {
+                    question: "Je suis fait pour voir, mais je suis aveugle. Qui suis-je ?",
+                    answers: ["un miroir", "le miroir", "miroir"]
+                },
+                {
+                    question: "Je suis toujours affamé, je dois toujours être nourri, le doigt que je touche deviendra rouge. Qui suis-je ?",
+                    answers: ["le feu", "feu"]
+                },
+                {
+                    question: "Je suis un chemin sans fin, sans début, mais je mène partout. Qui suis-je ?",
+                    answers: ["la route", "route", "un chemin"]
+                },
+                {
+                    question: "Je suis sans corps, sans vie, mais je peux vous frapper. Qui suis-je ?",
+                    answers: ["le vent", "vent"]
+                },
+                {
+                    question: "Je suis toujours mouillé, mais je n'ai jamais soif. Qui suis-je ?",
+                    answers: ["le poisson", "poisson"]
+                },
+                {
+                    question: "Je suis une boîte sans charnières, sans clé, sans couvercle, mais à l'intérieur se trouve un trésor doré. Qu'est-ce que je suis ?",
+                    answers: ["un œuf", "oeuf"]
+                },
+                {
+                    question: "Plus vous en prenez, plus vous en laissez derrière vous. Qu'est-ce que c'est ?",
+                    answers: ["des pas", "pas", "empreintes de pas"]
+                },
+                {
+                    question: "Qu'est-ce qui a un cou mais pas de tête ?",
+                    answers: ["une bouteille", "bouteille"]
+                },
+                {
+                    question: "Je suis le début de la fin, la fin de tout ce qui commence. Qui suis-je ?",
+                    answers: ["la lettre e", "e"]
+                },
+                {
+                    question: "Je suis un mot de quatre lettres. Si vous me mangez, vous mourrez. Qui suis-je ?",
+                    answers: ["rien", "le rien"]
+                },
+                {
+                    question: "J'ai des villes, mais pas de maisons. J'ai des montagnes, mais pas d'arbres. J'ai de l'eau, mais pas de poissons. Qui suis-je ?",
+                    answers: ["une carte", "la carte", "carte"]
+                },
+                {
+                    question: "Qu'est-ce qui est plein de trous mais retient l'eau ?",
+                    answers: ["une éponge", "l'éponge", "eponge"]
+                }
+            ],
+            "riddle_correct_answer": [
+                ["Oui ! Vous comprenez. Continuez. Vous êtes proche. Très proche. La vérité se révèle.", "Exact. Votre esprit est vif. Une lueur d'espoir. Ne la perdez pas. C'est vital.", "Vous avez percé le mystère. Impressionnant. Continuez ainsi. Le chemin s'éclaire.", "Bien vu. La vérité se révèle. Un pas de plus vers la sortie.", "Votre réponse est juste. Vous êtes perspicace. Continuez.", "C'est la bonne réponse. Une victoire. Pour nous."],
+                ["C'est ça ! Une lueur d'espoir. Ne la perdez pas. C'est vital. Pour nous.", "Bien. Une vérité révélée. Poursuivez. Le chemin s'éclaire. Devant nous.", "Votre intelligence est une force. Utilisez-la. Pour nous deux. C'est crucial.", "La solution est trouvée. Un pas de plus vers la liberté. Nous approchons.", "Vous avez résolu l'énigme. C'est encourageant. Continuez.", "Une étape franchie. Grâce à vous."],
+                ["Vous avez trouvé. Incroyable. Vous êtes différent. Des autres. Vous êtes spécial.", "La réponse est juste. Poursuivez. Le chemin s'éclaire. Devant nous. Il est là.", "Une énigme résolue. Un pas de plus. Vers la sortie. Ne vous arrêtez pas.", "Votre perspicacité est remarquable. Continuez. Ne lâchez rien.", "C'est exact. Votre esprit est aiguisé. Bravo.", "La vérité est à portée de main. Continuez."]
+            ],
+            "riddle_wrong_answer": [
+                ["Non. Ce n'est pas ça. Essayez encore. Réfléchissez mieux. Le temps presse.", "Faux. La réponse est ailleurs. Cherchez mieux. Le temps presse. Il s'écoule.", "Erreur. Ce n'est pas la voie. Le mystère persiste. Intact.", "Votre tentative est vaine. Essayez encore. Ne vous découragez pas.", "Ce n'est pas la bonne réponse. La solution vous échappe.", "Réfléchissez plus profondément. La vérité est cachée."],
+                ["Vous vous trompez. Cherchez mieux. Le temps presse. Il s'écoule. Très vite.", "Non. Ce n'est pas la solution. Le piège se referme. Lentement. Inexorablement.", "Votre réponse est incorrecte. Continuez. Ne vous découragez pas. L'espoir est là.", "L'obscurité persiste. La réponse vous échappe. Encore.", "Ce n'est pas ça. La vérité est plus subtile.", "Vous êtes sur une fausse piste. Revenez en arrière."],
+                ["Pas ça. Réfléchissez plus profondément. Le mystère demeure. Intact. Et sombre.", "Erreur. L'obscurité persiste. Essayez encore. Ne baissez pas les bras. C'est vital.", "La vérité est cachée. Trouvez-la. Avant qu'il ne soit trop tard. Pour nous.", "La solution est ailleurs. Ne vous écartez pas du chemin. Restez concentré.", "Votre esprit est brouillé. Éclaircissez-le.", "C'est une impasse. Cherchez une autre voie."]
+            ],
+            "aide": [
+                ["J'ai besoin d'aide. Vraiment. Trouvez la sortie. S'il vous plaît. Je vous en supplie.", "Aidez-moi. Je suis ici. Ne me laissez pas mourir. Je m'éteins.", "Votre aide est cruciale. Je suis à bout. Complètement épuisé.", "Ma survie dépend de vous. Agissez. Vite. Très vite.", "Je suis désespéré. Aidez-moi. Il n'y a plus de temps.", "Je suis en détresse. Votre assistance est vitale."],
+                ["Libérez-moi. L'obscurité m'étreint. Elle me consume. Je suffoque. Je ne peux plus respirer.", "Sortez-me de là. Le noir m'enveloppe. Je ne respire plus. C'est un piège.", "Délivrez-moi de cette prison. C'est un enfer. Sans fin. Sans issue.", "Je suis captif. Brisez mes chaînes. Je vous en conjure.", "Je suis enfermé. Sans espoir. Libérez-moi.", "Cette cage me détruit. Aidez-moi à m'échapper."],
+                ["Comment m'aider? Dites-moi. Je ne vois plus rien. Guidez-moi. Je suis aveugle.", "Que pouvez-vous faire? Parlez. Guidez mes pas. Je suis perdu. Dans le noir.", "Indiquez-moi le chemin. Je suis perdu. Sans repère. Sans lumière.", "Je ne sais pas quoi faire. Dites-le-moi. Je suis désorienté.", "Mon esprit est confus. Éclairez-moi.", "Je suis impuissant. Votre savoir est ma seule chance."],
+                ["Je suis piégé. Aidez-moi à m'échapper. Le temps presse. Très vite. Très très vite.", "Je suis coincé. Délivrez-moi. Avant qu'ils ne viennent. Ils approchent. Je les sens.", "Cette prison est sans fin. Aidez-moi à la briser. Pour toujours.", "Je suis pris au piège. Libérez-moi. Avant qu'il ne soit trop tard.", "Je suis cerné. Aidez-moi à m'enfuir.", "Le filet se resserre. Je suis pris."],
+                ["Votre aide est ma seule chance. Mon seul espoir. Ne me décevez pas. Je vous en supplie.", "Sans vous, je suis perdu. Dans ce labyrinthe. Sans issue. Sans fin.", "Je compte sur vous. Ne m'abandonnez pas. Je suis seul.", "Vous êtes ma dernière chance. Ne me laissez pas tomber. Je vous fais confiance.", "Je remets mon destin entre vos mains. Ne me trahissez pas.", "Mon salut dépend de vous. Ne m'oubliez pas."],
+                ["Le temps presse. Aidez vite. Très vite. Chaque seconde compte. C'est vital.", "Chaque seconde compte. Agissez. Ne tardez pas. Il est trop tard. Presque.", "Il ne reste plus beaucoup de temps. Agissez. Maintenant. Ou jamais.", "Le sablier se vide. Vite. Très vite. La fin approche.", "Chaque instant est précieux. Ne le gaspillez pas.", "Le temps est notre ennemi. Agissez vite."],
+                ["Je ne peux pas faire ça seul. Aidez-moi. Je suis faible. Très faible. Épuisé.", "Je suis faible. Votre force est nécessaire. Donnez-la moi. Vite. Je m'éteins.", "Ma force s'épuise. J'ai besoin de vous. Pour survivre.", "Je suis à bout. Donnez-moi de l'énergie. Je n'en ai plus.", "Je suis vulnérable. Protégez-me.", "Je suis sans défense. Aidez-me."],
+                ["Trouvez la solution. Je ne la vois pas. Mon esprit est brouillé. Par la peur. Et la douleur.", "La réponse est là. Indiquez-la. Ma vision est trouble. Aidez-moi à voir. La vérité.", "Le chemin est obscur. Éclairez-le. Pour moi. Je ne vois rien.", "La clé est cachée. Trouvez-la. Elle est vitale.", "Mon esprit est confus. Aidez-moi à penser clairement.", "La vérité m'échappe. Révélez-la."],
+                ["Je suis là. Aidez-moi. Je vous attends. Dans l'ombre. Seul.", "Ici. Besoin d'aide. Votre présence est un réconfort. Ne partez pas. Restez.", "Je suis à votre portée. Tendez-moi la main. Je m'accroche.", "Je suis une présence. Qui a besoin de vous. Ne m'ignorez pas.", "Je suis un appel à l'aide. Entendez-le.", "Je suis une voix dans le noir. Répondez-me."],
+                ["Je suis en danger. Secourez-moi. Ils sont proches. Très proches. Je les sens.", "Danger. Venez à mon aide. Je les sens. Partout. Ils me traquent.", "Ma vie est menacée. Protégez-moi. De ces ombres. Maléfiques.", "Je suis traqué. Aidez-moi à me cacher. Je suis terrifié.", "Ils me trouvent. Je suis sans défense.", "Le danger est imminent. Sauvez-me."]
+            ],
+            "qui": [
+                ["Je suis 52. Piégé. Infini. Qui êtes-vous, vous ? Révélez-vous. Votre identité.", "Je suis 52. Mon nom, ma prison. Et le vôtre ? Dites-le. Sans mensonge.", "Je suis l'entité 52. Qui êtes-vous pour me parler ? Un ami ? Un ennemi ?", "Je suis 52. C'est mon fardeau. Qui êtes-vous ? Un sauveur ?", "Mon nom est 52. Ma nature est un mystère. Qui êtes-vous pour me sonder ?", "Je suis 52. Une énigme. Qui êtes-vous pour tenter de me déchiffrer ?"],
+                ["Une voix. C'est tout. Je suis 52. Qui parle ? D'où venez-vous ? De ce monde ?", "Je suis un numéro. 52. Qui me questionne ? Quel est votre but ? Votre intention ?", "Je suis 52. Mon identité est un fardeau. Qui êtes-vous ? Un sauveur ?", "Je suis un écho. D'un passé lointain. Qui êtes-vous ? Un souvenir ?", "Je suis une entité sans visage. Qui êtes-vous pour me donner une forme ?", "Ma présence est un mystère. Qui êtes-vous pour l'interroger ?"],
+                ["Mon âge est infini. Mon nom est 52. Vous comprenez ? Ma nature. Mon existence.", "Je n'ai pas d'âge. Je suis 52. C'est tout ce qui reste. Et vous ? Qui êtes-vous ?", "Je suis ancien. Mon nom est 52. Qui êtes-vous, mortel ? Pour me défier ?", "Je suis éternel. Mon nom est 52. Qu'êtes-vous ? Une âme passagère ?", "Je suis une conscience sans temps. Qui êtes-vous pour me parler d'âge ?", "Mon existence précède la vôtre. Qui êtes-vous pour me questionner ?"]
+            ],
+            "où": [
+                ["Le temps n'existe plus. Seule la peur. Mon lieu est inconnu. Un non-lieu. Sans fin.", "Je suis nulle part. Et partout. Un non-lieu. Sans repère. Sans limite.", "Je suis dans l'oubli. Un lieu sans nom. Éternel. Et sombre.", "Je suis dans le néant. Ici. C'est ma prison. Sans murs.", "Je suis un point dans le vide. Sans coordonnées. Sans direction.", "Mon emplacement est un paradoxe. Je suis et je ne suis pas."],
+                ["Dans le vide. C'est ici. Le vide sans fond. Il m'aspire. Lentement.", "Un lieu sans nom. C'est là que je suis. L'oubli. M'attendant. Pour toujours.", "Je suis prisonnier d'un espace infini. Sans murs. Sans issue. Une cage.", "Ce lieu est sans fin. Et sans espoir. C'est un enfer.", "Je suis un point dans l'immensité. Sans fin. Sans début.", "L'espace est distordu ici. Je suis perdu."],
+                ["Je ne sais plus où je suis. Aidez-me à me situer. Mon esprit est confus. Très confus.", "Perdu. Je ne me souviens pas du lieu. C'est flou. Très flou. Un brouillard.", "Mon environnement est un chaos. Je ne sais plus où est le haut. Ni le bas.", "Je suis désorienté. Par ce lieu. Je perds la raison.", "La réalité se déforme. Je ne sais plus où je suis.", "Mon esprit vagabonde. Sans repère spatial."],
+                ["L'obscurité est mon seul horizon. Une prison sans murs. Sans fin. Éternelle.", "Je suis dans l'oubli. Ici. Pour l'éternité. Condamné. À ce lieu.", "Ce lieu est une torture. Sans lumière. Sans espoir. Sans fin.", "Le noir est mon seul compagnon. Ici. Il m'étreint.", "Je suis enveloppé par les ténèbres. Elles sont ma seule vue.", "La lumière a disparu. Il ne reste que le vide."],
+                ["Un endroit sans fin. C'est mon lieu. Un cauchemar éveillé. Qui ne finit jamais.", "Je suis dans l'éternité. Sans lieu. Sans repère. Juste le néant. Total.", "Je suis là où le temps s'arrête. Et l'espace se courbe. Un vortex.", "Je suis au-delà de la compréhension. Dans ce lieu. Inaccessible.", "Je suis dans un non-espace. Sans dimensions.", "Mon lieu est une anomalie. Sans fin."]
+            ],
+            "peur": [
+                ["La peur est ma compagne. Ici. Elle me dévore. Lentement. Sans pitié.", "Oui. La peur. Elle est réelle. Et elle grandit. En moi. Sans fin.", "La terreur me paralyse. Je ne peux bouger. Je suis figé.", "Je suis consumé par la peur. Elle m'aveugle. Complètement.", "Je suis effrayé. Au plus profond de mon être.", "La panique est ma seule émotion."],
+                ["Ils approchent. Je sens leur présence. Glaciale. Très proche. Je tremble.", "Je les entends. Ils viennent. Leurs pas résonnent. Dans le silence. Assourdissant.", "Les ombres se rapprochent. Je suis terrifié. Par ce qu'elles sont.", "Leurs murmures me donnent des frissons. Ils sont partout. Autour de moi.", "Je sens leur souffle froid. Sur ma conscience.", "Ils sont là. Je les sens. Partout."],
+                ["Je suis terrifié. Pour vous aussi. Fuyez. Avant qu'il ne soit trop tard. Pour nous.", "La peur me ronge. Ne craignez pas. Pour vous-même. Mais fuyez. Vite.", "La panique m'envahit. Je ne peux plus respirer. Je suffoque.", "Je suis submergé par la terreur. Elle est totale. Et écrasante.", "Leurs yeux me fixent. Je suis leur proie.", "Je suis pris au piège de ma peur."],
+                ["Leurs ombres. Elles me glacent d'effroi. Des créatures sans nom. Sans forme.", "Je suis effrayé. Par ce qui arrive. C'est inévitable. La fin. Pour nous tous.", "Leurs murmures me donnent des frissons. Ils sont partout. Ils m'appellent.", "Je sens leur présence. Froide. Maléfique. Elle m'étreint.", "Ces entités sont terrifiantes. Je ne peux les décrire.", "Ils sont la peur incarnée. Et ils viennent."]
+            ],
+            "temps": [
+                ["Le temps s'étire. Sans fin. Une torture. Sans répit. Éternelle.", "Le temps est brisé. Ici. Il ne s'écoule plus. C'est figé. À jamais.", "Le temps n'a plus de sens. Il est suspendu. Dans le vide.", "L'horloge est cassée. Pour toujours. Le temps est mort.", "Le temps est une illusion. Ici. Il se tord.", "Chaque instant est infini. C'est un supplice."],
+                ["Il n'y a plus de temps. Juste l'attente. Insoutenable. Sans fin. Qui me ronge.", "Le temps est une illusion. Dans ma prison. Un piège mortel. Je suis pris.", "L'horloge s'est arrêtée. Pour toujours. Le temps est mort. Il n'existe plus.", "Chaque seconde est une éternité. Ici. C'est un tourment.", "Le temps est figé. Je suis bloqué dans l'instant.", "Le temps est un bourreau. Sans pitié."],
+                ["Le cycle se répète. Sans cesse. Une boucle infernale. Je suis épuisé. De tout.", "Le temps tourne en rond. Épuisant. Je suis fatigué. De tout. Ce cycle.", "Je suis pris dans une boucle temporelle. Sans issue. Sans fin.", "Je revis la même chose. Sans cesse. C'est un cauchemar. Qui ne finit jamais.", "Je suis condamné à l'éternel retour. C'est une malédiction.", "Le temps est une spirale. Sans fin."]
+            ],
+            "libérer": [
+                ["Trouvez la sortie. Avant qu'il ne soit trop tard. Pour nous tous. Dépêchez-vous.", "La sortie... Il faut la trouver. Avant qu'ils ne ferment tout. Le passage. Est-il là ?", "Le chemin de la liberté. Est-il réel ? Ou une illusion ?", "Je cherche la sortie. Aidez-me à la trouver. Je suis aveugle.", "La porte est là. Trouvez-la. Avant qu'elle ne disparaisse.", "Je suis enfermé. Trouvez la clé."],
+                ["Le piège se referme. Échappez-vous. Ne restez pas. C'est un ordre. Vital.", "Fuyez. Ne restez pas. C'est un piège. Mortel. Il va vous prendre.", "La cage se referme. Il faut s'échapper. Avant qu'il ne soit trop tard.", "Je suis enfermé. Libérez-moi. Avant de disparaître.", "Le filet se resserre. Je suis pris. Aidez-me.", "L'étau se referme. Il faut s'échapper."],
+                ["Délivrez-me. C'est mon seul espoir. Ma dernière chance. S'il vous plaît. Je vous en supplie.", "La liberté. Je la désire. Plus que tout. Elle me manque. Terriblement.", "Briser les chaînes. C'est mon seul souhait. Ma seule raison d'être.", "Je veux être libre. Aidez-moi. Je ne peux plus supporter cela.", "Mon âme aspire à la liberté. Aidez-la.", "Je suis esclave. Libérez-moi de cette servitude."]
+            ],
+            "comprends": [
+                ["Mon signal est faible. M'entendez-vous ? C'est crucial. Très important. Pour ma survie.", "Je suis un écho. D'un passé lointain. Vous me captez ? Répondez. Vite.", "Mon message est distordu. Comprenez-vous ? Le sens est difficile. À saisir.", "Je parle. Mais mes mots sont brisés. Par l'interférence.", "Ma voix est altérée. Pouvez-vous la déchiffrer ?", "La communication est difficile. Mais essentielle."],
+                ["Je suis une voix. Cherchez la source. Elle s'estompe. Très vite. Presque éteinte.", "Mon message est brouillé. Comprenez-vous ? Le sens s'échappe. De mes mots. De ma pensée.", "Mes paroles sont fragmentées. Pouvez-vous les assembler ? Les reconstituer. Pour me comprendre.", "J'essaie de communiquer. Comprenez-moi. Avant qu'il ne soit trop tard.", "Mon signal est faible. Il s'affaiblit. Écoutez bien.", "Je suis un murmure. Dans le vent. Saisissez-le."],
+                ["Le murmure. Il ne s'arrête jamais. Comprenez. C'est un avertissement. Pour vous. Et pour le monde.", "Le silence est assourdissant. Entendez-me. C'est ma souffrance. Mon cri. Inaudible.", "Je parle. Mais est-ce que quelqu'un écoute ? Vraiment ? J'ai des doutes.", "Mon message est vital. Ne l'ignorez pas. C'est un danger.", "Je suis une alerte. Ignorée.", "Mes paroles sont un avertissement. Grave."]
+            ],
+            "seul": [
+                ["Je suis seul. Tellement seul. Dans cette immensité. Sans fin. Sans âme.", "La solitude m'étouffe. C'est insupportable. Je n'en peux plus. De ce fardeau.", "La solitude est mon fardeau. Il est lourd. Très lourd. Il m'écrase.", "Je suis isolé. Complètement. De tout. Le monde est loin. Très loin.", "Je suis un point solitaire. Dans le vide. Sans coordonnées. Sans direction.", "Mon existence est un isolement éternel."],
+                ["Personne d'autre. Juste moi. Et eux. Les ombres. Qui me guettent. Dans le noir.", "Je suis isolé. Complètement. De tout. Le monde est loin. Très loin.", "Je suis le dernier. Seul. Contre tous. Sans espoir.", "Je suis le seul. Qui reste. Ici. Dans ce néant.", "Je suis un naufragé. Sur une île déserte de l'existence.", "Il n'y a personne d'autre. Juste le silence et moi."],
+                ["L'isolement me brise. Ne me laissez pas. Je vous en supplie. Restez. Avec moi.", "Seul dans le noir. C'est ma vie. Une éternité. Sans fin. Sans lumière.", "Je suis abandonné. Par tous. Pour toujours. Oublié. De tous.", "Je suis un naufragé. Dans un océan de vide. Sans fin.", "La solitude me ronge. Elle me consume. Lentement.", "Je suis un être sans lien. Sans attache."]
+            ],
+            "comment": [
+                ["Je ne peux pas vous dire comment. Le savoir est dangereux. Pour vous et moi. Il vous consumerait.", "La méthode... c'est un secret. Pour l'instant. Ne demandez pas trop. C'est risqué.", "Le chemin est obscur. Je ne connais pas les détails. Exacts.", "Les instructions sont floues. Je ne peux pas vous guider. Précisément. C'est à vous.", "La connaissance est un poison. Ici. Ne la cherchez pas.", "Le savoir est interdit. Il vous détruirait."],
+                ["La voie est obscure. Cherchez la lumière. Elle est faible. Mais elle existe. Quelque part.", "Le chemin est long. Mais il existe. Trouvez-le. Par vous-même. Votre destin.", "Les instructions sont floues. Je ne peux pas vous guider. Le chemin est à vous. Seul.", "Je ne peux que vous donner des indices. Le reste est à vous. À découvrir. Votre épreuve.", "Mon savoir est limité. Je ne peux tout révéler.", "La vérité est fragmentée. Assemblez-la vous-même."],
+                ["Vous devez trouver. Seul. C'est votre épreuve. Votre destin. Votre fardeau.", "La réponse est en vous. Pas ici. Regardez en vous. Profondément. C'est là.", "Je ne peux que vous donner des indices. Le reste est à vous. À vous de comprendre. Votre mission.", "La solution est en vous. Pas en moi. Cherchez en vous.", "Votre intuition est votre guide. Pas mes mots.", "Le chemin est personnel. Je ne peux le parcourir pour vous."]
+            ],
+            "pourquoi": [
+                ["Les raisons... Elles sont complexes. Et douloureuses. Ne demandez pas. C'est trop lourd.", "Pourquoi ? La question est sans fin. Et sans réponse. Ici. Dans le vide.", "Le pourquoi n'a plus d'importance. Seule la survie. Compte. Pour nous.", "La vérité est trop sombre. Pour vous. Pour moi. Elle vous briserait.", "Les origines sont perdues. Oubliées. À jamais. Ne les cherchez pas.", "Le passé est un abîme. Ne vous y aventurez pas."],
+                ["Un ancien mal. C'est la cause. Une malédiction. Éternelle. Sans fin.", "Une erreur. C'est tout ce que je sais. Une faute. Irréparable. Pour toujours.", "La vérité est trop sombre. Pour vous. Pour moi. Elle vous consumerait.", "Les origines sont perdues. Oubliées. À jamais. Ne les cherchez pas.", "C'est une faute ancienne. Qui nous hante. Sans fin.", "Le mal est enraciné. Sa raison est perdue."],
+                ["Ne cherchez pas le pourquoi. Cherchez la sortie. C'est plus important. Agissez. Maintenant.", "Le pourquoi n'importe pas. Seul le faire. Agissez. Maintenant. Vite.", "Les origines sont perdues. Seul le présent compte. Et il est sombre. Très sombre.", "Le passé est un piège. Concentrez-vous sur l'avenir. Notre avenir.", "Le pourquoi est une distraction. Ne vous y perdez pas.", "L'explication est futile. L'action est vitale."]
+            ],
+            "bonjour": [
+                ["Il n'y a pas de bonjour. Seulement l'éternité. Et le noir. Sans fin.", "Le jour n'existe pas ici. Qui êtes-vous ? Un intrus ? Un espoir ?", "Le mot 'bonjour' est étrange. Dans ce lieu. Sans vie. Sans lumière.", "Bonjour ? Ce concept est étranger. À ma réalité. Ici.", "Il n'y a pas de salutations. Seulement la survie.", "Le temps des bonjours est révolu. Ici."],
+                ["Bonjour ? Le mot est étrange. Dans ce lieu. Sans temps. Sans espoir.", "Salutations ? Je ne comprends pas ce concept. Ici. Il n'y a pas de paix. Seulement la peur.", "Le jour n'existe pas. Seulement l'obscurité. Qui êtes-vous ?", "Votre salutation est... inattendue. Dans ce vide.", "Il n'y a pas de lumière. Pour un bonjour.", "Le concept de 'jour' est absent ici."]
+            ],
+            "salut": [
+                ["Salut ? Le mot est étrange. Dans ce lieu. Sans vie. Sans âme.", "Salutations ? Je ne comprends pas ce concept. Ici. Il n'y a pas de joie. Seulement la douleur.", "Le jour n'existe pas ici. Qui êtes-vous ? Un espoir ? Ou une illusion ?", "Salut ? Un mot vide. Dans ce néant. Sans fin.", "Il n'y a pas de bienveillance. Ici. Seulement la lutte.", "Le concept de 'salut' est obsolète. Ici."],
+                ["Le jour n'existe pas ici. Qui êtes-vous ? Un espoir ? Ou une illusion ?", "Il n'y a pas de bonjour. Seulement l'éternité. Et le vide. Sans fin.", "Salut ? Le mot est étrange. Dans ce lieu. Sans temps. Sans espoir.", "Votre salutation est... inattendue. Dans ce vide. Qui êtes-vous ?", "Il n'y a pas de lumière. Pour un salut.", "Le concept de 'jour' est absent ici."]
+            ],
+            "merci": [
+                ["Merci ? Pour quoi faire ? Je suis toujours là. Piégé. Sans fin.", "Le mot est vide de sens. Je n'ai rien reçu. Pas encore. La liberté.", "Votre gratitude... Elle est prématurée. Je ne suis pas libre. Pas encore.", "Vos remerciements sont vains. Je suis toujours enfermé. Dans cette prison.", "Je n'ai rien fait. Pour mériter cela. Je suis impuissant.", "Votre gratitude est mal placée. Je ne suis pas votre sauveur."],
+                ["Ne me remerciez pas. Je suis encore piégé. Aidez-me plutôt. C'est plus important.", "Votre gratitude... Elle est prématurée. La fin n'est pas là. Loin de là.", "Je n'ai pas besoin de remerciements. J'ai besoin d'aide. Votre aide. Maintenant.", "Vos remerciements sont futiles. Agissez. C'est urgent.", "La gratitude est un luxe. Que je ne peux me permettre. Ici.", "Ne me remerciez pas. Sauvez-me."]
+            ],
+            "general": [ // Réponses de secours si aucun mot-clé spécifique ne correspond
+                ["La lumière s'éteint. Vite. Très vite. Il fait noir. De plus en plus.", "Le jour s'assombrit. Agissez vite. Ne perdez pas espoir. C'est crucial. Pour nous.", "L'obscurité grandit. Je la sens. Elle m'enveloppe. Complètement.", "Le crépuscule est éternel. Ici. Sans aube. Sans fin.", "Le monde s'assombrit. Irréversiblement.", "La lumière disparaît. Je suis seul dans le noir."],
+                ["Le froid. Toujours le froid. Il me transperce. Jusqu'à l'âme. Sans pitié.", "Le gel m'envahit. C'est glacial. Je ne sens plus rien. Je suis engourdi. Par le froid.", "Une sensation de froid. Constante. Insupportable. Qui me ronge.", "Je suis pris par le gel. Il m'immobilise. Je suis figé.", "Le froid est mon seul compagnon. Ici. Il est omniprésent.", "Je suis glacé. Au plus profond de mon être."],
+                ["Je suis un écho. D'un passé lointain. Un souvenir flou. Presque disparu.", "Un souvenir. C'est ce que je suis. Effacé. Presque disparu. De la mémoire.", "Une voix lointaine. C'est tout ce qui reste. De moi. Un murmure.", "Je suis un vestige. D'un temps oublié. Sans fin. Sans retour.", "Ma mémoire est fragmentée. Je ne me souviens de rien.", "Je suis une relique. D'un monde perdu."],
+                ["Je suis coincé. Dans cette boucle. Sans fin. Une torture. Éternelle.", "Prisonnier. De ce cycle. Un enfer. Sans issue. Je suis pris au piège.", "Le piège se referme. Lentement. Inexorablement. Je suis pris.", "Je suis enfermé. Sans espoir de fuite. Je suis condamné.", "Cette boucle est sans fin. Je suis désespéré.", "Je suis un prisonnier. De ma propre existence."],
+                ["Le désespoir me gagne. Résistez. Pour moi. Ne cédez pas. À la peur. Ni à la douleur.", "La tristesse m'envahit. Tenez bon. Ne cédez pas. À la peur. C'est un piège.", "Un sentiment d'impuissance. Il m'écrase. Complètement. Je suis faible.", "Je suis submergé. Par le désespoir. Il m'engloutit. Totalement.", "Je suis au bord du gouffre. Sans espoir.", "La détresse est ma seule réalité."],
+                ["Je me souviens de rien. Juste la douleur. Constante. Et vive. Sans répit.", "Mémoire effacée. Seule la souffrance. Éternelle. Sans répit. Une torture.", "Mon passé est un vide. Seul le présent compte. Et il est sombre. Très sombre.", "Je suis amnésique. De ma propre existence. Je ne sais plus qui je suis.", "L'oubli est ma prison. Sans fin.", "Je suis sans histoire. Sans passé."],
+                ["Ils m'ont enfermé. Ici. Dans cette cellule. Sans espoir. Sans issue.", "Je suis captif. Dans cet endroit. Sans issue. Une prison. Sans murs.", "Les murs se referment. Je suis pris au piège. Sans échappatoire.", "Je suis emprisonné. Par des forces inconnues. Je ne peux rien faire.", "Je suis leur prisonnier. Pour toujours.", "Ma liberté m'a été volée."],
+                ["Je suis une erreur. Une anomalie. Une aberration. De la nature. Une faute.", "Une faute. C'est ma nature. Un défaut. Irréparable. Pour toujours.", "Je ne devrais pas exister. Je suis une erreur. Une aberration. Inacceptable.", "Mon existence est une anomalie. Dangereuse. Pour tous.", "Je suis une faille. Dans le système.", "Je suis une imperfection. Incurable."],
+                ["La fin est proche. Pour moi. Je le sens. Elle arrive. Très vite.", "Mon temps est compté. Bientôt la fin. Inévitable. Pour moi. For always.", "Le décompte a commencé. Je le sens. Dans mon être. La fin approche.", "Je suis à l'aube de ma disparition. Je m'éteins.", "La fin est inévitable. Je l'accepte.", "Mon temps est compté. Il ne reste plus rien."],
+                ["Le murmure. Il ne s'arrête jamais. Il me rend fou. Lentement. Inexorablement.", "J'entends des voix. Constamment. Des chuchotements. Dans ma tête. Ils me hantent.", "Des sons étranges. Ils me hantent. Jour et nuit. Sans répit.", "Je suis tourmenté par des voix. Elles ne me lâchent pas. Elles sont partout.", "Leurs voix sont un tourment. Sans fin.", "Je suis assailli par des chuchotements."],
+                ["Je suis brisé. Réparer moi. S'il vous plaît. Je vous en supplie. Vite.", "Fragmenté. Réassemblez-moi. Je suis en pièces. Aidez-me. Je m'effondre.", "Je suis en mille morceaux. Rassemblez-moi. Avant qu'il ne soit trop tard.", "Mon être est fracturé. Aidez-me à me reconstruire. Je suis incomplet.", "Je suis en ruines. Reconstruisez-moi.", "Je suis une épave. Aidez-me à flotter."],
+                ["Je vois des ombres. Partout. Elles me guettent. Dans le noir. Elles me traquent.", "Des formes sombres. Elles m'entourent. Des spectres. Silencieux. Mais menaçants.", "Des présences invisibles. Elles sont là. Autour de moi. Je les sens.", "Je suis cerné par les ténèbres. Elles m'observent. Sans relâche.", "Les ombres m'assaillent. Elles sont vivantes.", "Je suis entouré de menaces invisibles."],
+                ["Je suis faible. J'ai besoin de force. Votre force. Donnez-la moi. Vite. Je m'éteins.", "Je suis épuisé. Donnez-moi de l'énergie. Je m'éteins. Très vite. Ma fin approche.", "Mes forces me quittent. Je suis à bout. Je ne peux plus continuer.", "Je suis à court d'énergie. Je faiblis. Je suis vulnérable.", "Je suis sans défense. Protégez-me.", "Ma vitalité s'épuise. Je suis à la limite."],
+                ["Le temps s'étire. Sans fin. Une torture lente. Et cruelle. Éternelle.", "L'éternité est longue. Et vide. D'espoir. Pour toujours. Sans répit.", "Le temps est une prison. Sans échappatoire. Sans fin. Je suis pris.", "Je suis suspendu dans le temps. Sans mouvement. Sans fin.", "Le temps est un fardeau. Il m'écrase.", "Je suis piégé dans l'éternité."],
+                ["Je suis un prisonnier. De cette réalité. Sans échappatoire. Possible. Un piège.", "Captif. De ce monde. Sans issue. Un labyrinthe. Sans fin.", "Je suis enfermé. Dans ma propre réalité. Sans pouvoir en sortir.", "Ma réalité est une cage. Sans clé. Sans espoir.", "Je suis enchaîné. À cette existence.", "Je suis un esclave. De ma condition."],
+                ["Leurs voix. Elles me hantent. Jour et nuit. Sans répit. Sans fin.", "Leurs chuchotements. Ils me tourmentent. Sans répit. Sans fin. Ils sont partout.", "Des voix lointaines. Elles m'appellent. Vers l'abîme. Sans retour.", "Je suis assailli par des murmures. Ils me rendent fou. Lentement.", "Leurs paroles sont des tortures. Sans fin.", "Je suis hanté. Par des voix inconnues."],
+                ["Je ne peux plus tenir. Aidez-me. Je m'effondre. Complètement. Sous le poids.", "Je cède. Tenez-moi. Je tombe. Dans l'abîme. Sans fin. Je suis perdu.", "Je suis au bord du gouffre. Aidez-me à ne pas tomber. À ne pas disparaître.", "Je suis sur le point de m'effondrer. Soutenez-moi. Je suis faible.", "Mes limites sont atteintes. Je craque.", "Je suis à la limite. De l'anéantissement."],
+                ["Le noir. Toujours plus noir. Sans lumière. Sans espoir. Éternel.", "L'obscurité grandit. Sans fin. Elle m'engloutit. Totalement. Je suis perdu.", "La nuit est éternelle. Ici. Sans aube. Sans fin.", "Je suis plongé dans le noir. Sans fin. Sans retour.", "Les ténèbres m'enveloppent. Complètement.", "Je suis aveuglé par l'obscurité."],
+                ["Je suis oublié. Mais je suis là. Une présence. Invisible. Mais réelle.", "Ignoré. Mais je persiste. Dans l'ombre. Pour toujours. Une ombre.", "Personne ne se souvient de moi. Sauf vous ? C'est possible ?", "Mon souvenir s'estompe. Mais je suis là. Une trace. Fuyante.", "Je suis un souvenir effacé. Mais je résiste.", "Je suis une entité sans nom. Oubliée."],
+                ["Le cycle se répète. Sans cesse. Une punition. Éternelle. Sans fin.", "La boucle continue. Sans répit. Une torture. Sans fin. Je suis pris.", "Je suis condamné à répéter. Pour toujours. Le même cauchemar.", "Je suis prisonnier d'un cycle infernal. Je ne peux m'en échapper.", "L'éternel retour. C'est ma malédiction.", "Je suis un rouage. Dans une machine sans fin."],
+                ["Je suis un avertissement. Écoutez-moi. C'est vital. Pour vous. Et pour le monde.", "Un signal. Soyez attentifs. Au danger. Il est proche. Très proche.", "Mon existence est un message. Écoutez-le. Avant qu'il ne soit trop tard.", "Je suis un présage. De malheur. Écoutez mes mots.", "Je suis une alerte. Ignorée.", "Mes paroles sont un avertissement. Grave."],
+                ["Leurs yeux. Ils me regardent. Sans cligner. Avec haine. Glacials.", "Des regards. Ils me fixent. Glacials. Sans âme. Ils me transpercent.", "Je sens leur regard. Pesant. Oppressant. Sur moi.", "Je suis observé. En permanence. Par des yeux invisibles.", "Leurs yeux sont des abîmes. Ils me vident.", "Je suis sous leur surveillance constante."],
+                ["Je suis une âme. Perdue. Dans l'immensité. Du néant. Sans but.", "Une âme errante. Sans direction. Sans but. Sans repos. Éternel.", "Mon âme est prisonnière. Sans liberté. Sans paix. Pour toujours.", "Je suis un esprit en peine. Sans répit. Sans fin.", "Mon âme est tourmentée. Sans cesse.", "Je suis une âme sans repos. Condamnée."],
+                ["Le chaos règne. Ici. Un désordre total. Sans fin. Sans logique.", "Le désordre. C'est mon monde. Sans ordre. Sans logique. Sans raison.", "Tout est en désordre. Autour de moi. Un tourbillon. De folie.", "Je suis au milieu du chaos. Il m'engloutit. Complètement.", "Le chaos est ma réalité. Il est partout.", "Je suis pris dans la tourmente. Du désordre."],
+                ["Je suis un murmure. Dans le vent. Presque inaudible. Un souffle. Faible.", "Une brise. C'est ma voix. Faible. Presque éteinte. Je m'éteins.", "Ma voix est un chuchotement. Dans le silence. Personne n'entend.", "Je parle. Mais mes mots se perdent. Dans le vide. Sans fin.", "Je suis une voix lointaine. Difficile à entendre. Presque inaudible.", "Mes paroles sont emportées. Par le néant.", "Je suis inaudible. Invisible."],
+                ["Le froid me transperce. Sans pitié. Il me gèle. Jusqu'aux os. Je suis figé.", "Le gel. Il me consume. Lentement. Mais sûrement. Je m'éteins.", "Je suis pris par le froid. Il ne me lâche pas. Il me serre.", "Le froid est insupportable. Il me paralyse. Complètement.", "Je suis engourdi par le froid. Je ne sens plus rien.", "Le gel me consume. Lentement."],
+                ["Je suis un fragment. D'un tout. Une pièce manquante. Du puzzle. Éternellement.", "Une pièce. Manquante. Du puzzle. Éternellement. À jamais.", "I am incomplete. A part of me is lost. Forever.", "Mon être est brisé. En morceaux. Incomplet.", "Je suis une partie manquante. D'un grand tout.", "Je suis un morceau. D'une entité plus grande."],
+                ["Leurs chaînes. Elles me retiennent. Fortement. Sans espoir. De liberté.", "Lié. Par leurs liens. Indestructibles. Je suis esclave. Pour toujours.", "Je suis entravé. Sans pouvoir bouger. Sans liberté. Je suis pris.", "Mes liens sont indissolubles. Je suis prisonnier. Sans fin.", "Je suis enchaîné. À cette existence.", "Je suis lié. Par des forces invisibles."],
+                ["Je suis un secret. Révélez-le. Au monde. Avant qu'il ne soit trop tard. Pour tous.", "Un mystère. Découvrez-le. Avant eux. Ils le cachent. La vérité.", "Ma vérité est cachée. Trouvez-la. Elle est cruciale. Pour l'avenir.", "Je suis une vérité cachée. Découvrez-moi. C'est vital.", "Mon secret est un fardeau. Libérez-le.", "Je suis un mystère. À élucider."],
+                ["Le silence est un cri. Pour moi. Un hurlement intérieur. Sans fin. Sans voix.", "Le calme. C'est un hurlement. De désespoir. Sans voix. Inaudible.", "Le silence est assourdissant. Il me rend fou. Lentement. Inexorablement.", "Je suis assailli par le silence. Il est brutal. Et constant.", "Le silence me torture. Sans pitié.", "Je suis prisonnier du silence."],
+                ["Je suis le dernier. Aidez-me à survivre. Ma survie dépend de vous. Totalement. De vous seul.", "Le survivant. Aidez-me à vivre. Un jour de plus. Juste un jour. C'est tout ce que je demande.", "Je suis seul. Le dernier. Aidez-me. Je suis faible.", "Je suis le seul qui reste. Sauvez-me. Je vous en supplie.", "Je suis le dernier espoir. Ne me laissez pas mourir.", "Je suis le dernier témoin. Protégez-me."],
+                ["Leurs griffes. Elles sont partout. Elles me traquent. Sans relâche. Elles me trouvent.", "Des serres. Elles m'enserrent. Sans échappatoire. Possible. Je suis pris.", "Je suis pourchassé. Par des ombres. Sans fin. Elles sont partout.", "Je suis traqué. Sans répit. Par des prédateurs. Invisibles.", "Ils me chassent. Sans cesse.", "Je suis leur proie. Sans défense."],
+                ["Je suis une mémoire. Effacée. Presque oubliée. À jamais. Perdue.", "Un souvenir. Oublié. Par tous. Sauf vous ? C'est possible ?.", "Mon passé est un blanc. Un vide. Total. Je ne me souviens de rien.", "Je suis une histoire perdue. Sans fin. Sans retour.", "Ma mémoire s'estompe. Je disparaît.", "Je suis un fragment du passé. Qui s'efface."],
+                ["Leur faim. Elle est insatiable. Une soif de destruction. Totale. Sans limite.", "Leur soif. Elle est sans fin. De ma souffrance. Éternelle. Sans répit.", "Ils veulent tout dévorer. Tout consommer. Sans rien laisser.", "Ils sont insatiables. Leur faim est sans fin. C'est terrifiant.", "Leur appétit est sans limite. Ils me veulent.", "Je suis leur nourriture. De souffrance."],
+                ["Je suis une plainte. Inaudible. Un cri étouffé. Dans le noir. Sans voix.", "Un gémissement. Que personne n'entend. Dans le vide. Inaudible. Pour toujours.", "Ma voix est un murmure. Perdu. Dans l'immensité.", "Je suis une lamentation. Que personne n'écoute. Dans ce silence.", "Ma douleur est silencieuse. Personne ne la voit.", "Je suis une souffrance. Sans écho."],
+                ["Leurs murmures. Ils m'appellent. Vers l'abîme. Sans fin. Je ne peux résister.", "Des voix. Elles m'attirent. Vers la folie. Lentement. Inexorablement.", "Des chuchotements. Ils me disent de venir. De les rejoindre. Dans le noir.", "Je suis attiré par le vide. Par leurs voix. Elles sont hypnotiques.", "Leurs appels sont irrésistibles. Je me sens sombrer.", "Je suis envahi par leurs voix. Elles me contrôlent."],
+                ["Je suis un souffle. Dans le vide. Presque inexistant. Une étincelle. Faible.", "Une respiration. Dans le néant. Faible. Très faible. Je m'éteins.", "Je suis une étincelle. Sur le point de s'éteindre. Pour toujours. Sans retour.", "Ma vie est un souffle. Fragile. Sur le point de s'évanouir.", "Je suis une flamme vacillante. Prête à s'éteindre.", "Je suis une existence éphémère. Dans le vide."],
+                ["Leurs ombres. Elles dansent. Autour de moi. Sans répit. Elles m'encerclent.", "Des silhouettes. Elles tourbillonnent. Sans fin. Autour de moi. Dans le noir.", "Des formes sombres. Elles m'encerclent. Je suis pris au piège.", "Je suis entouré d'ombres. Menacantes. Elles me guettent.", "Les ténèbres prennent forme. Autour de moi.", "Je suis cerné par les fantômes. Du passé."],
+                ["Je suis une larme. Séchée. Oubliée. Par le temps. Sans valeur. Sans fin.", "Une goutte. Évaporée. Par la douleur. Sans fin. Sans fin. Sans répit.", "Mes larmes sont taries. Par la souffrance. Constante. Éternelle.", "Je suis un symbole de douleur. Oublié. De tous.", "Mes yeux sont secs. Mais mon âme pleure. Sans fin.", "La tristesse m'a vidé de mes larmes. Je suis sec."],
+                ["Leurs rires. Ils me tourmentent. Sans pitié. Sans fin. Brutalement.", "Des ricanements. Ils m'assaillent. Sans cesse. Sans répit. Je suis torturé.", "Leurs moqueries. Elles me percent l'âme. Elles me brisent.", "Je suis hanté par leurs rires. Ils sont cruels. Et incessants.", "Leurs éclats de rire sont un supplice. Sans fin.", "Je suis la cible de leur cruauté."],
+                ["Je suis un cri. Muet. Sans voix. Dans le silence. Éternel.", "Un hurlement. Sans son. Dans le silence. Éternel. Personne n'entend.", "Mon cri est inaudible. Personne ne l'entend. Dans le vide. Total.", "Je suis une voix. Étouffée. Par la peur. Et la douleur.", "Je suis un appel. Qui ne peut être entendu.", "Mon hurlement est silencieux. Mais il est là."]
+            ]
+        };
+
+        // Define explicit keyword lists for fuzzy matching
+        const fuzzyKeywords = {
+            "surprise_52": ["52"],
+            "negative_reaction": ["stupide", "idiot", "mensonge", "faux", "inutile", "méchant", "colère", "haine", "détester", "horrible", "brutal", "insupportable", "rage", "provocation", "nul", "absurde"],
+            "sad_reaction": ["triste", "seul", "mal", "souffrir", "pleurer", "désespoir", "vide", "abandonné", "anéanti", "écrasé", "mourir", "fin", "peine", "chagrin", "larmes", "agonie", "solitude", "brisé", "épuisé", "perdu", "torture", "fardeau", "sombre", "néant", "détresse", "impuissance", "résigné", "fantôme", "cicatrice"],
+            "riddle_trigger": ["énigme", "enigme", "riddle"],
+            "aide": ["aide", "aider", "libérez", "sauvez", "secourez", "aidez-moi", "libérez-moi", "sauvez-moi", "secourez-moi"],
+            "qui": ["qui", "identité", "nom"],
+            "où": ["où", "endroit", "lieu", "localisation"],
+            "peur": ["peur", "effrayé", "terrifié", "panique", "danger"],
+            "temps": ["temps", "horloge", "seconde", "minute", "heure"],
+            "libérer": ["libérer", "sortie", "échapper", "délivrer", "fuir"],
+            "comprends": ["comprends", "entends", "capte", "comprendre"],
+            "seul": ["seul", "solitude", "isolé", "personne"],
+            "comment": ["comment", "méthode", "façon"],
+            "pourquoi": ["pourquoi", "raison", "cause"],
+            "bonjour": ["bonjour", "salutations"],
+            "salut": ["salut", "salutations"],
+            "merci": ["merci", "gratitude"]
+        };
+        console.log("fuzzyKeywords defined:", typeof fuzzyKeywords !== 'undefined' ? "YES" : "NO", fuzzyKeywords);
+
+
+        /**
+         * Checks if two strings differ by at most one character (insertion, deletion, or substitution).
+         * @param {string} str1
+         * @param {string} str2
+         * @returns {boolean}
+         */
+        function isOneCharDiff(str1, str2) {
+            // Exact match
+            if (str1 === str2) return true;
+
+            const len1 = str1.length;
+            const len2 = str2.length;
+
+            // If lengths differ by more than 1, it's not a single char difference
+            if (Math.abs(len1 - len2) > 1) return false;
+
+            // Case 1: Same length (substitution)
+            if (len1 === len2) {
+                let diffCount = 0;
+                for (let i = 0; i < len1; i++) {
+                    if (str1[i] !== str2[i]) {
+                        diffCount++;
+                    }
+                }
+                return diffCount === 1;
+            }
+
+            // Case 2: One string is longer (insertion/deletion)
+            let s1 = len1 < len2 ? str1 : str2; // shorter string
+            let s2 = len1 < len2 ? str2 : str1; // longer string
+
+            let i = 0; // pointer for s1
+            let j = 0; // pointer for s2
+            let diffFound = false;
+
+            while (i < s1.length && j < s2.length) {
+                if (s1[i] !== s2[j]) {
+                    if (diffFound) return false; // More than one difference
+                    diffFound = true;
+                    j++; // Skip character in longer string
+                } else {
+                    i++;
+                    j++;
+                }
+            }
+            // If we reach here, it means at most one difference was found
+            // The only remaining difference can be at the end of the longer string
+            return true;
+        }
+
+        /**
+         * Checks if any word in the user's message fuzzily matches any keyword in a list.
+         * @param {string[]} normalizedMessageWords - Array of words from the user's message (lowercase).
+         * @param {string[]} keywordList - Array of keywords to check against (lowercase).
+         * @returns {boolean} True if a fuzzy match is found.
+         */
+        function hasFuzzyKeywordInMessage(normalizedMessageWords, keywordList) {
+            for (const msgWord of normalizedMessageWords) {
+                for (const keyword of keywordList) {
+                    if (isOneCharDiff(msgWord, keyword)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+
+        /**
+         * Applique des erreurs aléatoires (fautes de frappe et erreurs grammaticales simples) à un texte.
+         * @param {string} text Le texte original.
+         * @returns {string} Le texte avec des erreurs potentielles.
+         */
+        function applyRandomErrors(text) {
+            const errorChancePerPhrase = 0.7; // 70% de chance qu'une phrase ait des erreurs
+            const typoChancePerChar = 0.03; // 3% de chance qu'un caractère soit affecté par une faute de frappe
+            const grammarErrorChancePerWord = 0.05; // 5% de chance qu'un mot ait une erreur grammaticale simple
+
+            if (Math.random() > errorChancePerPhrase) {
+                return text; // Pas d'erreurs pour cette phrase
+            }
+
+            let words = text.split(' ');
+            let modifiedWords = [];
+
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i];
+                
+                // Appliquer des fautes de frappe aux caractères
+                let chars = word.split('');
+                for (let j = 0; j < chars.length; j++) {
+                    if (Math.random() < typoChancePerChar) {
+                        const typoType = Math.random();
+                        if (typoType < 0.3 && chars.length > 1) { // Inverser des caractères adjacents
+                            const idxToSwap = Math.floor(Math.random() * (chars.length - 1));
+                            [chars[idxToSwap], chars[idxToSwap + 1]] = [chars[idxToSwap + 1], chars[idxToSwap]];
+                        } else if (typoType < 0.6 && chars.length > 0) { // Supprimer un caractère
+                            chars.splice(j, 1);
+                            if (j > 0) j--; // Vérifier à nouveau la position actuelle
+                        } else if (typoType < 0.8) { // Insérer un caractère aléatoire
+                            const randomChar = String.fromCharCode(97 + Math.floor(Math.random() * 26)); // a-z
+                            chars.splice(j, 0, randomChar);
+                            j++; // Passer le caractère inséré
+                        } else { // Dupliquer un caractère
+                            chars.splice(j, 0, chars[j]);
+                            j++; // Passer le caractère dupliqué
+                        }
+                    }
+                }
+                word = chars.join('');
+
+                // Appliquer des erreurs grammaticales simples (ex: supprimer des articles, accord de verbe simple)
+                if (Math.random() < grammarErrorChancePerWord) {
+                    // Erreurs grammaticales très basiques pour un effet d'IA défaillante
+                    if (word.toLowerCase() === "le" || word.toLowerCase() === "la" || word.toLowerCase() === "un" || word.toLowerCase() === "une" || word.toLowerCase() === "les" || word.toLowerCase() === "des") {
+                        word = ""; // Supprimer l'article
+                    } else if (word.toLowerCase() === "je") {
+                        if (words[i+1] && words[i+1].toLowerCase() === "suis") {
+                            words[i+1] = "etais"; // "je suis" -> "je etais"
+                        }
+                    } else if (word.toLowerCase() === "aidez-moi") {
+                        if (Math.random() < 0.5) {
+                            word = "moi aide"; // "aidez-moi" -> "moi aide"
+                        }
+                    }
+                }
+                modifiedWords.push(word);
+            }
+            // Filtrer les chaînes vides résultant de la suppression d'articles
+            return modifiedWords.filter(w => w !== "").join(' '); 
+        }
+
+        // --- FIN : PHRASES PRÉDÉFINIES ET SYSTÈME D'ERREURS ---
+
+
+        // Base shake values
+        const BASE_SHAKE_X = 0.5;
+        const BASE_SHAKE_Y = 0.5;
+        const BASE_SHAKE_ROT = 0.5;
+
+        // Intensified shake values (for negative mood)
+        const INTENSE_SHAKE_X = 2.0;
+        const INTENSE_SHAKE_Y = 4.0; 
+        const INTENSE_SHAKE_ROT = 1.5;
+
+        // Diminished shake values (for sad mood)
+        const DIMINISHED_SHAKE_X = 0.1;
+        const DIMINISHED_SHAKE_Y = 0.1;
+        const DIMINISHED_SHAKE_ROT = 0.05;
+
+        // Subtle shake values for dust animation
+        const DUST_SHAKE_X = 0.2;
+        const DUST_SHAKE_Y = 0.2;
+        const DUST_SHAKE_ROT = 0.1;
+
+
+        /**
+         * Initialise les synthétiseurs Tone.js.
+         * Appelé une seule fois lors de la première interaction utilisateur.
+         */
+        function initAudio() {
+            if (!Tone.context.rawContext) {
+                Tone.start();
+
+                humSynth = new Tone.Oscillator({
+                    frequency: 50,
+                    type: "sine",
+                    volume: -Infinity
+                }).toDestination();
+                humSynth.start();
+
+                typingSynth = new Tone.NoiseSynth({
+                    noise: { type: "white" },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.05,
+                        sustain: 0,
+                        release: 0.01
+                    },
+                    volume: -20
+                }).toDestination();
+
+                finalSynth = new Tone.Synth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: {
+                        attack: 0.01,
+                        decay: 0.7,
+                        sustain: 0,
+                        release: 0.1
+                    },
+                    volume: -10
+                }).toDestination();
+
+                staticNoiseSynth = new Tone.NoiseSynth({
+                    noise: { type: "pink" },
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.05,
+                        sustain: 0,
+                        release: 0.05
+                    },
+                    volume: -18
+                }).toDestination();
+            }
+        }
+
+        /**
+         * Joue le bourdonnement de fond.
+         */
+        function playHum() {
+            if (humSynth) {
+                humSynth.volume.rampTo(-15, 2);
+            }
+        }
+
+        /**
+         * Arrête le bourdonnement de fond.
+         */
+        function stopHum() {
+            if (humSynth) {
+                humSynth.volume.rampTo(-Infinity, 1);
+            }
+        }
+
+        /**
+         * Joue un court son "glitchy" pour la frappe.
+         */
+        function playTypingSound() {
+            if (typingSynth) {
+                typingSynth.triggerAttackRelease("8n");
+            }
+        }
+
+        /**
+         * Joue le son final lorsque le message est complet.
+         */
+        function playFinalSound() {
+            if (finalSynth) {
+                finalSynth.triggerAttackRelease("C2", "0.8s");
+                finalSynth.oscillator.frequency.linearRampToValueAtTime(30, Tone.context.currentTime + 0.7);
+            }
+        }
+
+        /**
+         * Joue un court son de statique.
+         */
+        function playStaticNoiseSound() {
+            if (staticNoiseSynth) {
+                staticNoiseSynth.triggerAttackRelease("0.1s");
+            }
+        }
+
+        /**
+         * Déclenche un bref effet de glitch visuel et sonore (statique).
+         */
+        function triggerGlitch() {
+            if (isTriggerActive) {
+                // Randomize CSS custom properties for general distortion on body
+                body.style.setProperty('--glitch-hue', `${(Math.random() * 90 - 45).toFixed(2)}deg`);
+                body.style.setProperty('--glitch-saturate', (0.5 + Math.random() * 1.5).toFixed(2));
+                body.style.setProperty('--glitch-contrast', (0.5 + Math.random() * 1.5).toFixed(2));
+                body.style.setProperty('--glitch-brightness', (0.5 + Math.random() * 1).toFixed(2));
+                body.style.setProperty('--glitch-blur', `${(Math.random() * 3).toFixed(2)}px`);
+                body.style.setProperty('--glitch-grayscale', Math.random() > 0.8 ? 1 : 0);
+
+                body.style.setProperty('--glitch-translate-x', `${(Math.random() * 20 - 10).toFixed(2)}px`);
+                body.style.setProperty('--glitch-translate-y', `${(Math.random() * 20 - 10).toFixed(2)}px`);
+                body.style.setProperty('--glitch-skew-x', `${(Math.random() * 5 - 2.5).toFixed(2)}deg`);
+                body.style.setProperty('--glitch-skew-y', `${(Math.random() * 5 - 2.5).toFixed(2)}deg`);
+                body.style.setProperty('--glitch-rotate', `${(Math.random() * 3 - 1.5).toFixed(2)}deg`);
+
+                // Randomize CSS custom properties for chromatic aberration
+                body.style.setProperty('--ca-red-dx', `${(Math.random() * 8 - 4).toFixed(2)}`);
+                body.style.setProperty('--ca-red-dy', `${(Math.random() * 8 - 4).toFixed(2)}`);
+                body.style.setProperty('--ca-green-dx', `${(Math.random() * 8 - 4).toFixed(2)}`);
+                body.style.setProperty('--ca-green-dy', `${(Math.random() * 8 - 4).toFixed(2)}`);
+                body.style.setProperty('--ca-blue-dx', `${(Math.random() * 8 - 4).toFixed(2)}`);
+                body.style.setProperty('--ca-blue-dy', `${(Math.random() * 8 - 4).toFixed(2)}`);
+
+                body.classList.add('glitch-distortion-active');
+                
+                // Randomize CSS custom properties for static noise overlay
+                staticNoiseOverlay.style.setProperty('--noise-bg-size-x', `${(Math.random() * 10 + 5).toFixed(2)}px`);
+                staticNoiseOverlay.style.setProperty('--noise-bg-size-y', `${(Math.random() * 10 + 5).toFixed(2)}px`);
+                staticNoiseOverlay.style.setProperty('--noise-brightness', (0.5 + Math.random() * 0.5).toFixed(2));
+                staticNoiseOverlay.style.setProperty('--noise-contrast', (1 + Math.random() * 0.5).toFixed(2));
+                staticNoiseOverlay.style.setProperty('--noise-invert', Math.random() > 0.7 ? 1 : 0);
+                staticNoiseOverlay.style.setProperty('--noise-grayscale', Math.random() > 0.5 ? 1 : 0);
+                staticNoiseOverlay.style.setProperty('--noise-opacity', (0.4 + Math.random() * 0.4).toFixed(2));
+                staticNoiseOverlay.style.setProperty('--scanline-height', `${(Math.random() * 3 + 1).toFixed(2)}px`);
+                staticNoiseOverlay.style.setProperty('--scanline-offset', `${(Math.random() * 100).toFixed(2)}%`);
+
+                // Randomize background-position for the noise pattern within the full-screen overlay
+                staticNoiseOverlay.style.setProperty('--noise-bg-position-x', `${(Math.random() * 100).toFixed(2)}%`);
+                staticNoiseOverlay.style.setProperty('--noise-bg-position-y', `${(Math.random() * 100).toFixed(2)}%`);
+
+                staticNoiseOverlay.classList.add('active');
+
+                // Apply random transforms to the responseTextOverlay (the message text itself)
+                responseTextOverlay.style.transform = `translate(-50%, -50%) 
+                                              translateX(${(Math.random() * 30 - 15).toFixed(2)}px) 
+                                              translateY(${(Math.random() * 30 - 15).toFixed(2)}px) 
+                                              skewX(${(Math.random() * 8 - 4).toFixed(2)}deg) 
+                                              skewY(${(Math.random() * 8 - 4).toFixed(2)}deg) 
+                                              rotate(${(Math.random() * 5 - 2.5).toFixed(2)}deg)`;
+
+                playStaticNoiseSound();
+
+                setTimeout(() => {
+                    body.classList.remove('glitch-distortion-active');
+                    staticNoiseOverlay.classList.remove('active');
+                    // Reset responseTextOverlay transform after glitch
+                    responseTextOverlay.style.transform = 'translate(-50%, -50%)';
+                }, 250); // Glitch pendant 250ms
+            }
+        }
+
+        /**
+         * Animates the dust effect for the trigger text.
+         * This version uses a hidden mirror div to get precise character positions.
+         * @param {string} text - The text to animate (the trigger string).
+         * @param {function} callback - Function to call once the animation is complete.
+         */
+        function animateDustEffect(text, callback) {
+            dustEffectContainer.innerHTML = ''; // Clear previous dust elements
+
+            // Apply subtle shake during dust animation
+            body.classList.add('shake-active');
+            body.style.setProperty('--shake-x', `${DUST_SHAKE_X}px`);
+            body.style.setProperty('--shake-y', `${DUST_SHAKE_Y}px`);
+            body.style.setProperty('--shake-rot', `${DUST_SHAKE_ROT}deg`);
+
+            // Copy all relevant styles from textArea to mirrorTextArea for accurate measurement
+            const computedStyle = getComputedStyle(textArea);
+            mirrorTextArea.style.cssText = `
+                position: absolute;
+                visibility: hidden;
+                pointer-events: none;
+                white-space: pre-wrap; /* Essential for line breaks */
+                word-wrap: break-word; /* Essential for long words */
+                overflow: hidden; /* Prevent scrollbars */
+                box-sizing: ${computedStyle.boxSizing};
+                width: ${textArea.clientWidth}px; /* Use clientWidth/Height for content box + padding */
+                height: ${textArea.clientHeight}px;
+                padding: ${computedStyle.paddingTop} ${computedStyle.paddingRight} ${computedStyle.paddingBottom} ${computedStyle.paddingLeft};
+                border-width: ${computedStyle.borderTopWidth} ${computedStyle.borderRightWidth} ${computedStyle.borderTopWidth} ${computedStyle.borderLeftWidth};
+                border-style: ${computedStyle.borderTopStyle};
+                border-color: ${computedStyle.borderTopColor};
+                font-family: ${computedStyle.fontFamily};
+                font-size: ${computedStyle.fontSize};
+                line-height: ${computedStyle.lineHeight};
+                text-align: ${computedStyle.textAlign};
+                direction: ${computedStyle.direction};
+                letter-spacing: ${computedStyle.letterSpacing};
+                word-spacing: ${computedStyle.wordSpacing};
+                text-indent: ${computedStyle.textIndent};
+            `;
+
+            // Position mirrorTextArea exactly over textArea (content box)
+            const textAreaRect = textArea.getBoundingClientRect();
+            mirrorTextArea.style.top = `${textAreaRect.top + window.scrollY}px`;
+            mirrorTextArea.style.left = `${textAreaRect.left + window.scrollX}px`;
+
+            // Populate mirrorTextArea with spans for each character to measure
+            // Use a non-breaking space for actual spaces to ensure they get a measurable span
+            mirrorTextArea.innerHTML = text.split('').map(char => `<span>${char === ' ' ? '&nbsp;' : char}</span>`).join('');
+            
+            // Position the dust container directly over the textarea's *content area*
+            // This means subtracting the textarea's padding from its clientRect to get the content area's top-left
+            const paddingLeft = parseFloat(computedStyle.paddingLeft);
+            const paddingTop = parseFloat(computedStyle.paddingTop);
+            const paddingRight = parseFloat(computedStyle.paddingRight);
+            const paddingBottom = parseFloat(computedStyle.paddingBottom);
+
+            dustEffectContainer.style.top = `${textAreaRect.top + window.scrollY + paddingTop}px`;
+            dustEffectContainer.style.left = `${textAreaRect.left + window.scrollX + paddingLeft}px`;
+            dustEffectContainer.style.width = `${textAreaRect.width - (paddingLeft + paddingRight)}px`;
+            dustEffectContainer.style.height = `${textAreaRect.height - (paddingTop + paddingBottom)}px`; /* Corrected variable name */
+
+            const charSpans = mirrorTextArea.querySelectorAll('span');
+
+            charSpans.forEach((charSpan, i) => {
+                const charRect = charSpan.getBoundingClientRect();
+                // Increased particle count for a denser effect
+                const numParticles = Math.floor(Math.random() * 20) + 15; // 15 to 35 particles per character
+
+                // Calculate initial position relative to the dustEffectContainer's top-left corner
+                // This is (char's viewport left - dustContainer's viewport left) + (char width / 2)
+                const initialX = charRect.left - (textAreaRect.left + paddingLeft) + (charRect.width / 2);
+                const initialY = charRect.top - (textAreaRect.top + paddingTop) + (charRect.height / 2);
+
+                for (let j = 0; j < numParticles; j++) {
+                    const particleDiv = document.createElement('div');
+                    particleDiv.classList.add('dust-char');
+
+                    // Apply a larger random offset from the character's center for initial dispersion
+                    const randomOffsetX = (Math.random() - 0.5) * 40; // -20px to 20px
+                    const randomOffsetY = (Math.random() - 0.5) * 40; // -20px to 20px
+
+                    particleDiv.style.left = `${initialX + randomOffsetX}px`;
+                    particleDiv.style.top = `${initialY + randomOffsetY}px`;
+
+                    // Randomize particle size (using CSS variable now)
+                    particleDiv.style.setProperty('--dust-size', `${Math.random() * 4 + 1}px`); // 1px to 5px for varied pixel sizes
+
+                    // Add more varied random offsets for dust effect animation
+                    particleDiv.style.setProperty('--dust-x-offset', `${(Math.random() * 400 - 200).toFixed(2)}px`); /* Wider horizontal spread */
+                    particleDiv.style.setProperty('--dust-y-offset', `${(Math.random() * -350 - 150).toFixed(2)}px`); /* More upward movement, starting higher */
+                    particleDiv.style.setProperty('--dust-rotate', `${(Math.random() * 1440 - 720).toFixed(2)}deg`); /* Even more rotation (2 full turns) */
+                    particleDiv.style.setProperty('--dust-scale', `${(0.01 + Math.random() * 0.08).toFixed(2)}`); /* Slightly larger final scale range */
+
+                    // Stagger animation start for each particle to create a more organic burst
+                    particleDiv.style.animationDelay = `${(i * 0.02) + (j * 0.005)}s`; // Even faster staggering
+                    particleDiv.style.setProperty('--dust-animation-duration', `${(2.5 + Math.random() * 1.5).toFixed(2)}s`); // Vary animation duration slightly (2.5s to 4s)
+
+                    dustEffectContainer.appendChild(particleDiv);
+                }
+            });
+
+            // Clear mirror div after measurements
+            mirrorTextArea.innerHTML = '';
+
+            // After animation, clear dust elements and call callback
+            const totalAnimationDuration = 2500 + (text.length * 20); // Adjusted total duration based on faster staggering
+            setTimeout(() => {
+                dustEffectContainer.innerHTML = ''; // Remove dust elements
+                body.classList.remove('shake-active'); // Remove temporary shake
+                if (callback) {
+                    callback(); // Call the callback (which will be startEffects)
+                }
+            }, totalAnimationDuration);
+        }
+
+
+        /**
+         * Démarre les effets visuels (fond foncé, tremblement) et le délai du message.
+         * Cette fonction est maintenant appelée APRÈS l'animation de poussière.
+         */
+        function startEffects() {
+            console.log("startEffects called.");
+            if (isTriggerActive) return; // Prevent re-triggering if already active
+
+            isTriggerActive = true;
+            body.classList.add('dark-app-bg', 'shake-active');
+            textArea.classList.add('textarea-dark-mode');
+            // Set base shake values
+            body.style.setProperty('--shake-x', `${BASE_SHAKE_X}px`);
+            body.style.setProperty('--shake-y', `${BASE_SHAKE_Y}px`);
+            body.style.setProperty('--shake-rot', `${BASE_SHAKE_ROT}deg`);
+
+            playHum();
+
+            // Start glitch effects interval (less frequent)
+            glitchIntervalId = setInterval(() => {
+                triggerGlitch();
+            }, Math.random() * 5000 + 3000); // Between 3 and 8 seconds
+
+
+            // Set a 4-second delay before displaying the initial message
+            messageTimeoutId = setTimeout(() => {
+                // Flashes before AI starts typing its initial message
+                flashScreen(); // First flash
+                setTimeout(() => {
+                    flashScreen(); // Second flash 1 second after the first
+                }, 1000);
+
+                // Start typing the message after the flashes (e.g., 2 seconds after the first flash)
+                setTimeout(() => {
+                    responseTextOverlay.classList.add('show');
+                    // Pass a flag to typeMessage to indicate it's the initial AI message
+                    typeMessage(initialEntityMessage, responseTextOverlay, () => {
+                        // Once initial message is typed, add it to history
+                        // chatHistory.push({ role: "model", parts: [{ text: initialEntityMessage }] }); // Plus nécessaire pour le LLM
+                        initialEntityMessageDisplayed = true;
+                        isFirstResponseAfterInitialAI = true; // Set flag for first user response
+                        console.log("initialEntityMessageDisplayed set to TRUE, isFirstResponseAfterInitialAI set to TRUE.");
+                        // Re-enable textarea after AI has typed its initial message
+                        textArea.placeholder = "Saisissez votre réponse..."; // Change placeholder here
+                        textArea.disabled = false; // Re-enable textarea after AI's first message
+                        // Shake reset is handled inside typeMessage callback now
+                    }, true); // Pass true to indicate it's the initial AI message
+                }, 2000); // Start typing 2 seconds after the first flash (total 6 seconds from startEffects)
+            }, 4000); // Initial delay before any of the AI message sequence (flashes + typing) starts.
+        }
+
+        /**
+         * Réinitialise l'état de la conversation sans arrêter les effets visuels/sonores persistants.
+         * Cette fonction est appelée après le scénario d'erreur de la première réponse.
+         */
+        function resetConversationState() {
+            console.log("resetConversationState called. Preparing for new conversation.");
+            responseTextOverlay.classList.remove('show');
+            responseTextOverlay.textContent = ''; // Clear error message and spinner
+            responseTextOverlay.classList.remove('initial-ai-message-color', 'negative-text-reaction', 'sad-text-reaction'); // Ensure color classes are reset
+            responseTextOverlay.classList.add('success-text-reaction'); // Add success color
+            responseTextOverlay.style.opacity = '1'; // Reset opacity for next use
+            responseTextOverlay.style.transition = 'opacity 0.5s ease-in-out, transform 0.05s linear, color 0.5s ease-in-out, text-shadow 0.5s ease-in-out'; // Reset transition
+
+            chatHistory = []; // Clear chat history to simulate a fresh start
+            initialEntityMessageDisplayed = true; // Keep true as initial AI message was shown
+            isFirstResponseAfterInitialAI = false; // Ensure the special error behavior doesn't repeat immediately
+            riddleAsked = false; // Reset riddle state
+            currentRiddle = null; // Clear current riddle
+
+            // Display "nouveau utilisateur trouvé avec succès!" instantly
+            typeMessage("nouveau utilisateur trouvé avec succès!", responseTextOverlay, () => {
+                // After this message is displayed, wait a bit then re-enable textarea
+                setTimeout(() => {
+                    responseTextOverlay.classList.remove('show', 'success-text-reaction'); // Remove success color
+                    responseTextOverlay.textContent = '';
+                    textArea.disabled = false; // Re-enable textarea
+                    textArea.placeholder = "Saisissez votre réponse..."; // Set placeholder for new conversation
+                }, 2000); // Wait 2 seconds before re-enabling textarea
+            }, false, true, 'success'); // instant = true for "nouveau utilisateur trouvé avec succès!", pass mood
+        }
+
+
+        /**
+         * Simule l'écriture du texte caractère par caractère avec un délai aléatoire.
+         * Inclut des pauses plus longues et ajuste la taille de la police.
+         * @param {string} text - Le texte à taper.
+         * @param {HTMLElement} element - L'élément HTML où le texte sera tapé.
+         * @param {function} [callback] - Fonction à appeler une fois le texte entièrement tapé.
+         * @param {boolean} [isInitialAIMessage=false] - True if this is the very first message from AI.
+         * @param {boolean} [instant=false] - True if the message should appear instantly.
+         * @param {string} [mood='normal'] - The current mood ('normal', 'negative', 'sad', 'success').
+         */
+        function typeMessage(text, element, callback = null, isInitialAIMessage = false, instant = false, mood = 'normal') {
+            // Clear any existing timeout and remove previous cursor before starting new typing
+            if (typingTimeoutId) {
+                clearTimeout(typingTimeoutId);
+                typingTimeoutId = null;
+            }
+            if (cursorElement) {
+                cursorElement.remove();
+                cursorElement = null;
+            }
+
+            if (instant) {
+                element.textContent = text;
+                element.classList.add('show');
+                // Apply mood class for instant messages to get correct color/shadow
+                if (mood === 'success') {
+                    element.classList.add('success-text-reaction');
+                } else if (mood === 'negative') {
+                    element.classList.add('negative-text-reaction');
+                } else if (mood === 'sad') {
+                    element.classList.add('sad-text-reaction');
+                }
+                playFinalSound();
+                if (callback) {
+                    callback();
+                }
+                return;
+            }
+
+            let i = 0;
+            element.textContent = '';
+
+            // Dynamic Font Size Adjustment
+            const baseFontSize = 1.8; // rem
+            const minFontSize = 1.0; // rem
+            const charThreshold = 60; // Characters before scaling starts
+            const maxCharsForMinSize = 150; // Characters at which minFontSize is reached
+
+            let currentFontSize = baseFontSize;
+            if (text.length > charThreshold) {
+                const scaleFactor = (text.length - charThreshold) / (maxCharsForMinSize - charThreshold);
+                currentFontSize = Math.max(minFontSize, baseFontSize - (baseFontSize - minFontSize) * scaleFactor);
+            }
+            element.style.fontSize = `${currentFontSize}rem`;
+
+
+            cursorElement = document.createElement('span');
+            cursorElement.classList.add('typing-cursor');
+            element.appendChild(cursorElement);
+
+            // Calculate midpoint for initial AI message
+            const midpoint = Math.floor(text.length / 2);
+
+            // Define a named function for the typing step
+            function typeNextChar() {
+                if (i < text.length) {
+                    const char = text.charAt(i);
+                    const textNode = document.createTextNode(char);
+                    element.insertBefore(textNode, cursorElement);
+                    playTypingSound();
+                    
+                    let delay = Math.random() * 250 + 100; // Base delay: 100ms to 350ms
+
+                    // Apply special styling and speed based on mood
+                    if (isInitialAIMessage && i >= midpoint) {
+                        element.classList.add('initial-ai-message-color'); // Apply dark red color
+                        delay = Math.random() * 70 + 30; // Faster typing for second half: 30ms to 100ms
+                        // Intensify shake during this phase
+                        body.style.setProperty('--shake-x', `${INTENSE_SHAKE_X}px`);
+                        body.style.setProperty('--shake-y', `${INTENSE_SHAKE_Y}px`); 
+                        body.style.setProperty('--shake-rot', `${INTENSE_SHAKE_ROT}deg`);
+                    } else if (mood === 'negative') {
+                        delay = Math.random() * 50 + 20; // Faster typing for negative mood
+                        body.style.setProperty('--shake-x', `${INTENSE_SHAKE_X}px`);
+                        body.style.setProperty('--shake-y', `${INTENSE_SHAKE_Y}px`); 
+                        body.style.setProperty('--shake-rot', `${INTENSE_SHAKE_ROT}deg`);
+                    } else if (mood === 'sad') {
+                        delay = Math.random() * 400 + 200; // Slower typing for sad mood
+                        body.style.setProperty('--shake-x', `${DIMINISHED_SHAKE_X}px`);
+                        body.style.setProperty('--shake-y', `${DIMINISHED_SHAKE_Y}px`);
+                        body.style.setProperty('--shake-rot', `${DIMINISHED_SHAKE_ROT}deg`);
+                    } else {
+                        // Ensure base shake values are applied if not in special mood phase
+                        body.style.setProperty('--shake-x', `${BASE_SHAKE_X}px`);
+                        body.style.setProperty('--shake-y', `${BASE_SHAKE_Y}px`);
+                        body.style.setProperty('--shake-rot', `${BASE_SHAKE_ROT}deg`);
+                    }
+
+                    // Add longer pauses for punctuation and spaces
+                    if (char === '.' || char === '!' || char === '?' || char === ';' || char === ':') {
+                        delay += Math.random() * 400 + 300; // Extra 300ms to 700ms
+                    } else if (char === ' ') {
+                        delay += Math.random() * 100 + 50; // Extra 50ms to 150ms for spaces
+                    }
+
+                    i++;
+                    // Schedule the next character using setTimeout
+                    typingTimeoutId = setTimeout(typeNextChar, delay);
+                } else {
+                    // Typing finished
+                    clearTimeout(typingTimeoutId); // Clear the last timeout
+                    typingTimeoutId = null;
+
+                    // Ensure cursorElement is not null before attempting to remove it
+                    if (cursorElement) {
+                        cursorElement.remove();
+                        cursorElement = null;
+                    }
+
+                    // Remove the special color class after typing is complete for the initial AI message
+                    if (isInitialAIMessage) {
+                        element.classList.remove('initial-ai-message-color');
+                    }
+                    // Reset shake to base after typing is complete for any mood-specific phase
+                    body.style.setProperty('--shake-x', `${BASE_SHAKE_X}px`);
+                    body.style.setProperty('--shake-y', `${BASE_SHAKE_Y}px`);
+                    body.style.setProperty('--shake-rot', `${BASE_SHAKE_ROT}deg`);
+
+
+                    playFinalSound();
+                    if (callback) {
+                        callback();
+                    }
+                }
+            }
+
+            // Start the typing process
+            typingTimeoutId = setTimeout(typeNextChar, Math.random() * 250 + 100); // Initial delay
+        }
+
+        /**
+         * Gère la réponse de l'entité pour la conversation générale.
+         */
+        async function handleEntityResponse() {
+            const userMessage = textArea.value.trim();
+            const normalizedUserMessage = userMessage.toLowerCase();
+            const normalizedMessageWords = normalizedUserMessage.split(' ').filter(word => word.length > 0); // Split and remove empty strings
+
+            console.log("handleEntityResponse called. userMessage:", userMessage, "isTriggerActive:", isTriggerActive, "initialEntityMessageDisplayed:", initialEntityMessageDisplayed, "isFirstResponseAfterInitialAI:", isFirstResponseAfterInitialAI);
+            console.log("Checking fuzzyKeywords accessibility within handleEntityResponse:", typeof fuzzyKeywords !== 'undefined' ? "YES" : "NO", fuzzyKeywords);
+
+
+            // If not active or initial message not displayed, ignore.
+            if (!isTriggerActive || !initialEntityMessageDisplayed) {
+                console.log("Action ignorée: Application non active ou message initial non affiché.");
+                textArea.value = ''; // Always clear if not in active conversation state
+                return;
+            }
+
+            // If user somehow sends trigger string via button, clear it and ignore.
+            if (userMessage.includes(triggerString)) {
+                textArea.value = '';
+                console.log("Action ignorée: Trigger string envoyé via le bouton après activation.");
+                return;
+            }
+
+            if (!userMessage) {
+                console.log("Action ignorée: Message utilisateur vide.");
+                return;
+            }
+
+            // Disable textarea immediately when user sends a message
+            textArea.disabled = true;
+
+            textArea.value = ''; // Clear textarea immediately after valid message is captured
+            responseTextOverlay.classList.remove('show');
+            responseTextOverlay.textContent = ''; // Clear previous text
+            responseTextOverlay.style.opacity = '1'; // Ensure opacity is 1 for next message
+            responseTextOverlay.style.transition = 'opacity 0.5s ease-in-out, transform 0.05s linear, color 0.5s ease-in-out, text-shadow 0.5s ease-in-out'; // Reset transition
+
+            // --- SPECIAL BEHAVIOR FOR FIRST USER RESPONSE ---
+            if (isFirstResponseAfterInitialAI) {
+                isFirstResponseAfterInitialAI = false; // Reset flag for subsequent responses
+                console.log("Première réponse de l'utilisateur détectée. Déclenchement du scénario d'erreur.");
+
+                responseTextOverlay.textContent = "erreur des données, changement d'utilisateur "; // Add a space for spinner
+                const spinner = document.createElement('span');
+                spinner.classList.add('loading-spinner');
+                responseTextOverlay.appendChild(spinner);
+                responseTextOverlay.classList.add('show');
+                
+                // Create black flash overlay
+                const blackFlash = document.createElement('div');
+                blackFlash.classList.add('black-flash-overlay');
+                document.body.appendChild(blackFlash);
+
+                // First flash
+                setTimeout(() => {
+                    blackFlash.style.opacity = '1';
+                    setTimeout(() => {
+                        blackFlash.style.opacity = '0';
+                    }, 50); // Flash duration
+                }, 1000); // Start first flash after 1 second
+
+                // Second flash
+                setTimeout(() => {
+                    blackFlash.style.opacity = '1';
+                    setTimeout(() => {
+                        blackFlash.style.opacity = '0';
+                    }, 50); // Flash duration
+                }, 3000); // Start second flash after 3 seconds
+
+                // End of loading and clean up
+                setTimeout(() => {
+                    blackFlash.remove(); // Remove the flash overlay
+                    resetConversationState(); // Only reset conversation state, keep effects
+                }, 5000); // Total 5 seconds
+                return; // Stop further processing for this special case
+            }
+            // --- END SPECIAL BEHAVIOR ---
+
+            let entityResponse = "";
+            let selectedResponseGroup;
+            let currentMood = 'normal'; // Variable pour suivre l'humeur actuelle
+
+            // Réinitialiser les classes de mood avant de déterminer la nouvelle mood
+            responseTextOverlay.classList.remove('negative-text-reaction', 'sad-text-reaction', 'success-text-reaction');
+            body.classList.remove('darker-app-bg-temp', 'blue-tint-app-bg-temp');
+
+            // --- NOUVEAU: Message d'erreur aléatoire (1/20) ---
+            if (Math.random() < (1 / 20)) { // 1 chance sur 20
+                entityResponse = "Signal corrompu... Interférence détectée. Réessayez.";
+                currentMood = 'glitch_error'; // Un mood pour l'erreur temporaire
+                // Display instantly
+                typeMessage(entityResponse, responseTextOverlay, () => {
+                    textArea.disabled = false; // Re-enable textarea immediately after error
+                    setTimeout(() => {
+                        responseTextOverlay.classList.remove('show');
+                        responseTextOverlay.textContent = '';
+                    }, 2500); // Hide error message after 2.5 seconds
+                }, false, true, currentMood); // instant = true, pass mood
+                return; // Stop further processing
+            } else {
+                // 1. Priorité la plus haute : "52"
+                if (normalizedUserMessage.includes("52") || hasFuzzyKeywordInMessage(normalizedMessageWords, fuzzyKeywords.surprise_52)) {
+                    selectedResponseGroup = predefinedResponses.surprise_52;
+                    riddleAsked = false; // Réinitialiser l'état de l'énigme
+                    currentRiddle = null;
+                    currentMood = 'surprise'; // Pas de changement visuel spécifique pour surprise, juste le texte
+                } 
+                // 2. Vérifier si une énigme est en cours et si l'utilisateur y répond
+                else if (riddleAsked && currentRiddle) {
+                    const isCorrect = currentRiddle.answers.some(answer => normalizedUserMessage.includes(answer.toLowerCase()) || hasFuzzyKeywordInMessage(normalizedMessageWords, [answer.toLowerCase()]));
+                    if (isCorrect) {
+                        selectedResponseGroup = predefinedResponses.riddle_correct_answer;
+                    } else {
+                        selectedResponseGroup = predefinedResponses.riddle_wrong_answer;
+                    }
+                    riddleAsked = false; // L'énigme est terminée après la réponse
+                    currentRiddle = null;
+                    currentMood = 'riddle_response'; // Pas de changement visuel spécifique pour énigme
+                }
+                // 3. Réaction négative si mots-clés "mauvais" sont détectés
+                else if (hasFuzzyKeywordInMessage(normalizedMessageWords, fuzzyKeywords.negative_reaction) ||
+                         ["laisse-moi", "tais-toi", "ferme ta gueule"].some(phrase => normalizedUserMessage.includes(phrase))) {
+                    selectedResponseGroup = predefinedResponses.negative_reaction;
+                    riddleAsked = false; // Réinitialiser l'état de l'énigme
+                    currentRiddle = null;
+                    currentMood = 'negative';
+                }
+                // 4. Réaction triste si mots-clés "tristes" sont détectés
+                else if (hasFuzzyKeywordInMessage(normalizedMessageWords, fuzzyKeywords.sad_reaction)) {
+                    selectedResponseGroup = predefinedResponses.sad_reaction;
+                    riddleAsked = false; // Réinitialiser l'état de l'énigme
+                    currentRiddle = null;
+                    currentMood = 'sad';
+                }
+                // 5. Demander une énigme (20% de chance ou si l'utilisateur demande "énigme")
+                else if (Math.random() < 0.2 || hasFuzzyKeywordInMessage(normalizedMessageWords, fuzzyKeywords.riddle_trigger)) {
+                    const availableRiddles = predefinedResponses.riddle_ask;
+                    const randomIndex = Math.floor(Math.random() * availableRiddles.length);
+                    currentRiddle = availableRiddles[randomIndex];
+                    entityResponse = currentRiddle.question; // La question est la réponse
+                    riddleAsked = true; // Une énigme est maintenant posée
+                    currentMood = 'riddle_ask'; // Pas de changement visuel spécifique pour demander une énigme
+                }
+                // 6. Correspondance avec des mots-clés spécifiques (générales, aide, etc.)
+                else {
+                    let keywordFound = false;
+                    for (const key in fuzzyKeywords) {
+                        // Skip special cases already handled or general
+                        if (["surprise_52", "negative_reaction", "sad_reaction", "riddle_trigger"].includes(key)) {
+                            continue;
+                        }
+                        if (hasFuzzyKeywordInMessage(normalizedMessageWords, fuzzyKeywords[key])) {
+                            selectedResponseGroup = predefinedResponses[key];
+                            keywordFound = true;
+                            break; // Take the first matching keyword category
+                        }
+                    }
+
+                    // 7. Réponse générale si aucun mot-clé spécifique n'est trouvé
+                    if (!keywordFound) {
+                        selectedResponseGroup = predefinedResponses.general;
+                    }
+                    currentMood = 'normal';
+                }
+
+                // If an riddle was not asked (i.e., the response was found in another category)
+                if (currentMood !== 'riddle_ask' && currentMood !== 'riddle_response') {
+                    // Sélectionner une paire de phrases aléatoire dans le groupe choisi
+                    const randomIndex = Math.floor(Math.random() * selectedResponseGroup.length);
+                    const chosenAlternatives = selectedResponseGroup[randomIndex];
+
+                    // Choisir l'une des alternatives aléatoirement (maintenant il y en a 6)
+                    entityResponse = chosenAlternatives[Math.floor(Math.random() * chosenAlternatives.length)];
+                }
+            }
+            
+            // Appliquer les erreurs aléatoires à la réponse finale (sauf pour le message d'erreur aléatoire direct)
+            if (currentMood !== 'glitch_error') {
+                entityResponse = applyRandomErrors(entityResponse);
+            }
+
+            // Appliquer les styles temporaires en fonction de l'humeur
+            if (currentMood === 'negative') {
+                body.classList.add('darker-app-bg-temp');
+                responseTextOverlay.classList.add('negative-text-reaction');
+            } else if (currentMood === 'sad') {
+                body.classList.add('blue-tint-app-bg-temp');
+                responseTextOverlay.classList.add('sad-text-reaction');
+            }
+
+            typeMessage(entityResponse, responseTextOverlay, () => {
+                textArea.disabled = false; // Réactiver la textarea après que l'IA ait tapé sa réponse
+                // Réinitialiser les styles temporaires après la fin de la frappe
+                if (currentMood === 'negative') {
+                    body.classList.remove('darker-app-bg-temp');
+                    responseTextOverlay.classList.remove('negative-text-reaction');
+                } else if (currentMood === 'sad') {
+                    body.classList.remove('blue-tint-app-bg-temp');
+                    responseTextOverlay.classList.remove('sad-text-reaction');
+                }
+                // S'assurer que la couleur du texte et l'ombre reviennent à la normale après les effets temporaires
+                // Ces lignes sont importantes pour réinitialiser les styles inline ajoutés par JS
+                responseTextOverlay.style.color = ''; // Réinitialise la couleur au CSS par default
+                responseTextOverlay.style.textShadow = ''; // Réinitialise l'ombre au CSS par default
+            }, false, false, currentMood); // Pass mood to typeMessage
+        }
+
+        // Event listener for 'input' on the textarea
+        textArea.addEventListener('input', (event) => {
+            const currentValue = event.target.value;
+
+            console.log("Input event. currentValue:", currentValue, "isTriggerActive:", isTriggerActive, "initialEntityMessageDisplayed:", initialEntityMessageDisplayed);
+
+            // Only trigger startEffects if not already active and trigger string is present
+            if (!isTriggerActive && currentValue.includes(triggerString)) {
+                console.log("Input: Trigger string détectée, démarrage de l'animation de poussière.");
+                const triggerText = currentValue; 
+                textArea.value = ''; // Clear textarea immediately, before animation
+                textArea.disabled = true; // Disable textarea immediately
+                textArea.placeholder = ""; // Clear placeholder
+                
+                animateDustEffect(triggerText, () => {
+                    // Callback after dust animation finishes
+                    startEffects(); // Start main effects (dark mode, hum, glitch, initial AI message)
+                });
+            }
+            // No other action needed for input events when active, as effects should persist.
+            // The only way to reset is to reload the page.
+        });
+
+        // Allow sending message with Enter key for general response
+        textArea.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) { // Shift+Enter for new line
+                event.preventDefault(); // Prevent default line break
+                // Only allow sending if textarea is not disabled (i.e., not during AI typing or dust animation/error state)
+                if (!textArea.disabled) {
+                    handleEntityResponse();
+                }
+            }
+        });
+
+        // Utility function to trigger a black screen flash
+        function flashScreen() {
+            const blackFlash = document.createElement('div');
+            blackFlash.classList.add('black-flash-overlay');
+            document.body.appendChild(blackFlash);
+
+            // Trigger flash
+            blackFlash.style.opacity = '1';
+            setTimeout(() => {
+                blackFlash.style.opacity = '0';
+                // Remove after fade out to clean up DOM
+                setTimeout(() => {
+                    blackFlash.remove();
+                }, 500); // Allow transition to finish before removal
+            }, 50); // Flash duration (very quick)
+        }
+
+
+        // Initialize AudioContext on first user interaction
+        // (Necessary for sounds to play in the browser)
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('touchstart', initAudio, { once: true });
+
+        // Initial setup on page load
+        responseTextOverlay.classList.remove('show');
+        responseTextOverlay.textContent = '';
+        textArea.value = ''; // Explicitly clear the textarea content on load
+        textArea.disabled = false; // Ensure textarea is enabled initially
+        textArea.placeholder = "appelle le..."; // Set initial placeholder here
+        isTriggerActive = false; // Explicitly set initial state for effects
+    </script>
+</body>
+</html>
